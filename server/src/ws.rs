@@ -29,21 +29,24 @@ impl WebsocketClient {
         }
     }
 
+    // Starts an interval which runs a function that checks if we've gotten a
+    // response from the user/any ping sent during the CLIENT_TIMEMOUT duration.
     pub fn hb(&self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+            // Check if the duration since we've gotten a response from the client
+            // is larger than our allowed timeout time (CLIENT_TIMEOUT).
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                // TODO: Remove this in the future. Only here to show that the
-                // event occurred.
-                println!("Websocket client heartbeat failed, disconnecting.");
-
-                // Send a disconnect message to the lobby.
+                // Send a disconnect message to the lobby before closing the connection.
                 act.lobby_addr.do_send(Disconnect { self_id: act.id });
 
+                // Stop the websocket connection to the client.
                 ctx.stop();
 
                 return;
             }
 
+            // If the timeout threshold hasn't been passed we send a ping to the client
+            // to check that they're not idle.
             ctx.ping(b"");
         });
     }
@@ -52,7 +55,9 @@ impl WebsocketClient {
 impl Actor for WebsocketClient {
     type Context = ws::WebsocketContext<Self>;
 
+    // This method is called whenever a websocket connection is established with a client.
     fn started(&mut self, ctx: &mut Self::Context) {
+        // Start the heartbet interval. This is really important.
         self.hb(ctx);
 
         // Send connect message to the lobby.
@@ -62,6 +67,7 @@ impl Actor for WebsocketClient {
         });
     }
 
+    // This method is called whenever a websocket connection is broken down (disconnected).
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
         // Send disconnect message to the lobby.
         self.lobby_addr.do_send(Disconnect { self_id: self.id });
@@ -71,25 +77,37 @@ impl Actor for WebsocketClient {
 }
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
+    // This method handles any incoming message by any client.
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+        // Prints what kind of message is received to the terminal if it's not a ping or pong.
         match msg {
             Ok(ws::Message::Pong(_)) => (),
             Ok(ws::Message::Ping(_)) => (),
             _ => println!("WS: {:?}", msg),
         }
 
+        // Figure out what kind of message we've received.
         match msg {
             Ok(ws::Message::Ping(msg)) => {
+                // If the client has pinged us (the server), they are not idle so we update
+                // the last heartbeat time.
                 self.hb = Instant::now();
+
+                // Send a pong message back to the user.
                 ctx.pong(&msg);
             }
             Ok(ws::Message::Pong(_)) => {
+                // If we've received a pong that means the client has responded to our ping,
+                // so we update the last heartbeat time.
                 self.hb = Instant::now();
             }
             // TODO: This should probably be changed to something else instead
             // of echoing back to the client.
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             Ok(ws::Message::Close(reason)) => {
+                // If we've received a close message that means the client wants
+                // to disconnect so we close the session from our end and stop
+                // the socket connection.
                 ctx.close(reason);
                 ctx.stop();
             }
@@ -104,7 +122,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                 // TODO: Here we should parse incoming messages (as JSON?).
                 // It could also be useful to send messages to the lobby here in
                 // order to echo out to all connected clients of some event at a
-                // later point in time
+                // later point in time.
 
                 // For now we echo back to the user what they've sent.
                 ctx.text(text);

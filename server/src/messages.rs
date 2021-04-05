@@ -4,7 +4,7 @@ use uuid::Uuid;
 // Messages in this file is used for internal communication between different
 // actors (Lobby and WebsocketClient for example).
 
-// WebsocketClient responds to this to pipe it though to the actual client.
+// WebsocketClient responds to this to pipe it through to the actual client.
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct WsMessage(pub String);

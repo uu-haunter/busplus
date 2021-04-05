@@ -5,6 +5,8 @@ use uuid::Uuid;
 
 use crate::messages::{Connect, Disconnect, WsMessage};
 
+// Type alias, which is essentially an address to an actor which you can
+// send messages to.
 type Socket = Recipient<WsMessage>;
 
 // The lobby keeps track of a common/shared state between all clients.
@@ -47,6 +49,7 @@ impl Lobby {
     }
 }
 
+// This is a blanket implementation to make sure that the Lobby type is considered an Actor.
 impl Actor for Lobby {
     type Context = Context<Self>;
 }
@@ -54,6 +57,7 @@ impl Actor for Lobby {
 impl Handler<Connect> for Lobby {
     type Result = ();
 
+    // This method is called whenever the Lobby receives a "Connect" message.
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
         // Store the address of the client in the sessions hashmap.
         self.sessions.insert(msg.self_id, msg.addr);
@@ -66,6 +70,7 @@ impl Handler<Connect> for Lobby {
 impl Handler<Disconnect> for Lobby {
     type Result = ();
 
+    // This method is called whenever the Lobby receives a "Disconnect" message.
     fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
         // Try and remove the client from the sessions hashmap.
         if self.sessions.remove(&msg.self_id).is_some() {
