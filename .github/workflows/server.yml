@@ -11,12 +11,14 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ./server
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cd server && cargo build --verbose
+      run: cargo build --verbose
     - name: Check formatting
-      run: cd server && rustfmt --check --edition 2018 $(find src/ -name "*.rs")
+      run: rustfmt --check --edition 2018 $(find src/ -name "*.rs")
     - name: Run tests
-      run: cd server && cargo test --verbose
+      run: cargo test --verbose
