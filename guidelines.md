@@ -1,7 +1,7 @@
 
 # Use of Git/GitHub
 
-When naming branches use clear and descriptive names along with a description of what you are working on. Examples:
+When naming branches start off with a "tag" describing what you are working on (`feature`, `bugfix`, `hotfix`, `fix`, etc..) and follow with a description of what you are working on. It might also be good to specify that you are working on the `server`, `client` or some `general` work. Examples:
 
 ```
 feature/server_actor_messaging
