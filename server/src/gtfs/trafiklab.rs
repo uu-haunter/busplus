@@ -102,6 +102,7 @@ impl TrafiklabApi {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
