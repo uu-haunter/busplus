@@ -1,27 +1,51 @@
-import './App.css';
+import React from 'react';
 import Map from "./map.js";
-import Menu from "@material-ui/icons/Menu";
-import Fab from '@material-ui/core/Fab';
 import SearchBar from "./SearchBar.js";
+import './App.css';
 
+class App extends React.Component {
 
-function App() {
+	constructor() {
+		super();
+		this.state = {
+			realtimeData: []
+		};
+	};
 
+	componentDidMount() {
+		let ws = new WebSocket("ws://localhost:8080/ws");
+		ws.onopen = () => {
+			console.log('Connected!');
+			ws.send('Echo');
+		};
+		ws.onmessage = event => {
+			console.log('Message received');
+			console.log(event.data);
 
-  return (
-    <div className="App">
-      <div className = "App-header">
-      <Map/>
-        <Fab
-        id = "menuButton"
-        color = "primary" 
-        aria-label = "menuButton">
-          <Menu/>
-        </Fab>
-        <SearchBar/>
-      </div>
-    </div>
-  );
+			// handle received data here
+		};
+		ws.onerror = () => {
+			console.log('Connection error');
+		};
+		ws.onclose = () => {
+			console.log('Connection closed');
+		};
+	};
+
+	render() {
+		return (
+			<div className="App">
+	      <div className = "App-header">
+	      	<Map
+						realtimeData={this.state.realtimeData}
+					/>
+	        <SearchBar/>
+	      </div>
+	    </div>
+		);
+	};
+
 }
 
 export default App;
+

@@ -11,11 +11,12 @@
   color: white;
 }
 
-.App-header > #menuButton {
+#locationButton {
   position: absolute;
   bottom:0;
   right:0;
-  margin: 20px;
+  margin-right: 10px;
+  margin-bottom: 25px;
 }
 
 #paper {
@@ -29,4 +30,12 @@
   top: 0;
   z-index: 10;
   opacity: 0.8;
+}
+
+#themeButton {
+  position: absolute;
+  bottom:0;
+  left:0;
+  margin-left: 10px;
+  margin-bottom: 25px;
 }
