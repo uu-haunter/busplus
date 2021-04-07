@@ -1,4 +1,5 @@
 mod endpoints;
+mod gtfs;
 mod lobby;
 mod messages;
 mod ws;
