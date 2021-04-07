@@ -102,22 +102,26 @@ impl TrafiklabApi {
     }
 }
 
-#[test]
-fn test_get_vehicle_positions() {
-    let handler = TrafiklabApi::new("this_doesnt_matter");
-    let get_result = handler.get_vehicle_positions();
+mod tests {
+    use super::*;
 
-    // Since we haven't called "fetch_vehicle_positions()", we have not received
-    // any data and therefore we should always get None from get_vehicle_positions().
-    assert_eq!(get_result.is_none(), true);
-}
+    #[test]
+    fn test_get_vehicle_positions() {
+        let handler = TrafiklabApi::new("this_doesnt_matter");
+        let get_result = handler.get_vehicle_positions();
 
-#[test]
-fn test_bad_api_key() {
-    let mut handler = TrafiklabApi::new("this_is_not_a_valid_key");
-    let request_result = handler.fetch_vehicle_positions();
+        // Since we haven't called "fetch_vehicle_positions()", we have not received
+        // any data and therefore we should always get None from get_vehicle_positions().
+        assert_eq!(get_result.is_none(), true);
+    }
 
-    // When making a request with a bad api_key an error should always be returned
-    // since the API server do not accept a bad API key.
-    assert_eq!(request_result.is_err(), true);
+    #[test]
+    fn test_bad_api_key() {
+        let mut handler = TrafiklabApi::new("this_is_not_a_valid_key");
+        let request_result = handler.fetch_vehicle_positions();
+
+        // When making a request with a bad api_key an error should always be returned
+        // since the API server do not accept a bad API key.
+        assert_eq!(request_result.is_err(), true);
+    }
 }
