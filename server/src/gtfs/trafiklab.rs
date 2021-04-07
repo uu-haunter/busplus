@@ -20,9 +20,9 @@ const TRAFIKLAB_API_URL: &str =
 /// Struct for representing JSON error data received from the Trafiklab API.
 /// Example JSON:
 ///
-/// {
-///     errorMessage: "Key \"l33t_g4m3r\" is invalid"
-/// }
+///     {
+///         errorMessage: "Key \"l33t_g4m3r\" is invalid"
+///     }
 ///
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

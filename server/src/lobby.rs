@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use actix::prelude::{Actor, Context, Handler, Recipient};
 use uuid::Uuid;
 
+use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, WsMessage};
 
 // Type alias, which is essentially an address to an actor which you can
@@ -13,12 +14,16 @@ type Socket = Recipient<WsMessage>;
 pub struct Lobby {
     // Maps client IDs to a Socket.
     sessions: HashMap<Uuid, Socket>,
+
+    // Handle to communicate with Trafiklab's API.
+    trafiklab: TrafiklabApi,
 }
 
-impl Default for Lobby {
-    fn default() -> Self {
+impl Lobby {
+    pub fn new(api_key: &str) -> Self {
         Lobby {
             sessions: HashMap::new(),
+            trafiklab: TrafiklabApi::new(api_key),
         }
     }
 }

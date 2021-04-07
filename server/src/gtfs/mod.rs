@@ -1,2 +1,2 @@
 pub mod trafiklab;
-mod transit_realtime;
+pub mod transit_realtime;
