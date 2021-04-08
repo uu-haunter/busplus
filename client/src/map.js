@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   GoogleMap,
   useLoadScript,
@@ -24,13 +24,25 @@ function Map(props) {
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
 
+	useEffect(() => {
+		setRealtimeData(props.realtimeData);
+	}, [props.realtimeData]);
+
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
     mapRef.current = map;
   }, []);
 
+	// called when the maps bounds are changed e.g. when a user drags the map
+	const onBoundsChanged = () => {
+		let lat = mapRef.current.getCenter().lat();
+		let lng = mapRef.current.getCenter().lng();
+
+		//TODO: send a geo-position-update message to the server
+	};
+
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyD2nxWN__H5vzHRFdYejT9v8_qLv9R8vUk",
+    googleMapsApiKey: "AIzaSyDm354e4VJMSH5rVD93KcgEoKXXlSeTCnE",
   });
 
   const mapContainerStyle = {
@@ -66,23 +78,6 @@ function Map(props) {
     }
   };
 
-  var arr = [
-    {
-      id: 1,
-      position: {
-        latitude: 59.8595,
-        longitude: 17.6389,
-      },
-    },
-    {
-      id: 2,
-      position: {
-        latitude: 59.8575,
-        longitude: 17.6399,
-      },
-    },
-  ];
-
   if (loadError) return "Error";
   if (!isLoaded) return "Loading...";
 
@@ -94,8 +89,9 @@ function Map(props) {
         mapContainerStyle={mapContainerStyle}
         options={options}
         onLoad={onMapLoad}
+				onBoundsChanged={onBoundsChanged}
       >
-        {arr.map((obj) => (
+        {realtimeData.map((obj) => (
           <Marker
             key={obj.id}
             position={{
@@ -105,6 +101,7 @@ function Map(props) {
             onClick={() => {
               setSelectedMarker(obj);
             }}
+						rotation={obj.position.bearing}
           >
           </Marker>
         ))}
@@ -119,7 +116,7 @@ function Map(props) {
             }}
           >
             <div>
-              <p>{`Bus ${selectedMarker.id} \n Passengers 15`}</p>
+              <p>{`Bus ${selectedMarker.id} \n Passengers ${selectedMarker.passengers} / ${selectedMarker.capacity}`}</p>
             </div>
           </InfoWindow>
         )}
