@@ -1,5 +1,6 @@
 import React from 'react';
 import Map from "./map.js";
+import Map2 from "./map2.js";
 import SearchBar from "./SearchBar.js";
 import './App.css';
 
@@ -36,7 +37,7 @@ class App extends React.Component {
 		return (
 			<div className="App">
 	      <div className = "App-header">
-	      	<Map
+	      	<Map2
 						realtimeData={this.state.realtimeData}
 					/>
 	        <SearchBar/>

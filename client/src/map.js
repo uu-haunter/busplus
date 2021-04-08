@@ -110,7 +110,7 @@ class Map extends React.Component {
 	        	id = "locationButton"
 	        	color = "primary"
 	        	aria-label = "locationButton"
-            onClick = {() => this.updateLocation()}>
+            onClick = {this.updateLocation}>
 	          <MyLocationIcon/>
         </Fab>
         <Fab 
