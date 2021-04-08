@@ -7,9 +7,9 @@ Every message that is sent between the client and the server must be in the form
 
 ```json
 {
-    type: "<unique description of request/response>",
-    payload: {
-        data
+    "type": "<unique description of request/response>",
+    "payload": {
+        "data": []
     }
 }
 ```
