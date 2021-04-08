@@ -1,6 +1,5 @@
 import React from 'react';
 import Map from "./map.js";
-import Map2 from "./map2.js";
 import SearchBar from "./SearchBar.js";
 import './App.css';
 
@@ -22,7 +21,6 @@ class App extends React.Component {
 		ws.onmessage = event => {
 			console.log('Message received');
 			console.log(event.data);
-
 			// handle received data here
 		};
 		ws.onerror = () => {
@@ -37,7 +35,7 @@ class App extends React.Component {
 		return (
 			<div className="App">
 	      <div className = "App-header">
-	      	<Map2
+	      	<Map
 						realtimeData={this.state.realtimeData}
 					/>
 	        <SearchBar/>
