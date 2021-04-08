@@ -1,0 +1,51 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+h2 {
+  color: black;
+}
+
+p {
+  color: black;
+  font-size: 15px;
+  white-space: pre-line;
+}
+
+#locationButton {
+  position: absolute;
+  bottom:0;
+  right:0;
+  margin-right: 10px;
+  margin-bottom: 25px;
+}
+
+#paper {
+  position: absolute;
+  padding-left: 20px;
+  padding-right: 20px;
+  width: fit-content;
+  margin-top: 20px;
+  left: 50%;
+  transform: translate(-50%);
+  top: 0;
+  z-index: 10;
+  opacity: 0.8;
+}
+
+#themeButton {
+  position: absolute;
+  bottom:0;
+  left:0;
+  margin-left: 10px;
+  margin-bottom: 25px;
+}
