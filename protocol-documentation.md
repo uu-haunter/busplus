@@ -17,20 +17,22 @@ Every message that is sent between the client and the server must be in the form
 # Client messages
 Messages that are sent from a client to the server.
 
+### Update position
 When the position or zoom on the client's map is changed, this message should be sent to the server so that only information about busses that can be seen are sent to the client.
 ```json
 {
     "type": "geo-position-update",
     "payload": {
-        "radius": 10,
+        "maxDistance": 1000,
         "position": {
-            "latitude": 59,
-            "longitude": 16
+            "type": "Point",
+            "coordinates": [56.133, 13.128],
         }
     }
 }
 ```
 
+### Get line information
 Sent to get information about a specific line.
 > Not implemented
 ```json
@@ -42,6 +44,7 @@ Sent to get information about a specific line.
 }
 ```
 
+### Reserve seat
 Sent to reserve a seat on a bus with a specific id.
 > Not implemented
 ```json
@@ -56,6 +59,7 @@ Sent to reserve a seat on a bus with a specific id.
 # Server messages
 Messages that are sent from the server to clients.
 
+### Vehicle positions
 Sends the information of all vehicles set by `geo-position-update`
 ```json
 {
@@ -81,7 +85,8 @@ Sends the information of all vehicles set by `geo-position-update`
 }
 ```
 
-Get the information from a specific line
+### Line information
+Get the information from a specific line.
 >  Not implemented
 ```json
 {
@@ -95,9 +100,9 @@ Get the information from a specific line
 				"name": "Centralstationen",
                 "lines" : [5, 11, 14],
 				"position": {
-					"latitude": 59,
-					"longitude": 16,
-				}
+                    "type": "Point",
+                    "coordinates": [56.133, 13.128],
+                }
 			},
 			...
 		]
@@ -105,7 +110,8 @@ Get the information from a specific line
 }
 ```
 
-Get the information from a specific stop
+### Stop information
+Get the information from a specific stop.
 >  Not implemented
 ```json
 {
@@ -113,10 +119,10 @@ Get the information from a specific stop
 	"payload": {
         "name": "Centralstationen",
 		"lines" : [5, 11, 14],
-		"position": {
-			"latitude": 59,
-			"longitude": 16
-		}
+        "position": {
+            "type": "Point",
+            "coordinates": [56.133, 13.128],
+        } 
 	}
 }
 ```
