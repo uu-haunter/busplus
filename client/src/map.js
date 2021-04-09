@@ -6,6 +6,7 @@ import {
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
+import { computeDistanceBetween } from 'spherical-geometry-js';
 import Fab from "@material-ui/core/Fab";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
@@ -37,9 +38,29 @@ function Map(props) {
 	const onBoundsChanged = () => {
 		let lat = mapRef.current.getCenter().lat();
 		let lng = mapRef.current.getCenter().lng();
+		let radius = getBoundingSphereRadius();
 
-		//TODO: send a geo-position-update message to the server
+		let message = {
+			"type": "geo-position-update",
+			"payload": {
+				"radius": radius,
+				"position": {
+					"latitude": lat,
+					"longitude": lng
+				}
+			}
+		};
+
+		//TODO: send the message to the server
 	};
+
+	// returns the radius of the maps bounding sphere in meters
+	const getBoundingSphereRadius = () => {
+		let center = mapRef.current.getBounds().getCenter();
+		let northEast = mapRef.current.getBounds().getNorthEast();
+
+		return computeDistanceBetween(center, northEast);
+	}
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: "AIzaSyDm354e4VJMSH5rVD93KcgEoKXXlSeTCnE",
