@@ -27,7 +27,7 @@ function Map(props) {
 
 	useEffect(() => {
 		setRealtimeData(props.realtimeData);
-	}, [realtimeData]);
+	}, [props.realtimeData]);
 
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
@@ -67,7 +67,7 @@ function Map(props) {
 	}
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyDm354e4VJMSH5rVD93KcgEoKXXlSeTCnE",
+    googleMapsApiKey: "",
   });
 
   const mapContainerStyle = {
