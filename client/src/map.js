@@ -25,46 +25,46 @@ function Map(props) {
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
 
-	useEffect(() => {
-		setRealtimeData(props.realtimeData);
-	}, [props.realtimeData]);
+  useEffect(() => {
+    setRealtimeData(props.realtimeData);
+  }, [props.realtimeData]);
 
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
     mapRef.current = map;
   }, []);
 
-	// called when the maps bounds are changed e.g. when a user drags the map
-	const onBoundsChanged = () => {
-		// TODO: uncomment this code once the server supports 'geo-position-update'
-		/*
-		let lat = mapRef.current.getCenter().lat();
-		let lng = mapRef.current.getCenter().lng();
-		let radius = getBoundingSphereRadius();
+  // called when the maps bounds are changed e.g. when a user drags the map
+  const onBoundsChanged = () => {
+    // TODO: uncomment this code once the server supports 'geo-position-update'
+    /*
+    let lat = mapRef.current.getCenter().lat();
+    let lng = mapRef.current.getCenter().lng();
+    let radius = getBoundingSphereRadius();
 
-		let message = {
-			"type": "geo-position-update",
-			"payload": {
-				"radius": radius,
-				"position": {
-					"latitude": lat,
-					"longitude": lng
-				}
-			}
-		};
+    let message = {
+      "type": "geo-position-update",
+      "payload": {
+        "radius": radius,
+        "position": {
+          "latitude": lat,
+          "longitude": lng
+        }
+      }
+    };
 
-		props.wsSend(JSON.stringify(message);
-		*/
-	};
+    props.wsSend(JSON.stringify(message);
+    */
+  };
 
-	// returns the radius of the maps bounding sphere in meters
-	const getBoundingSphereRadius = () => {
-		let center = mapRef.current.getBounds().getCenter();
-		let northEast = mapRef.current.getBounds().getNorthEast();
+  // returns the radius of the maps bounding sphere in meters
+  const getBoundingSphereRadius = () => {
+    let center = mapRef.current.getBounds().getCenter();
+    let northEast = mapRef.current.getBounds().getNorthEast();
 
-		// return the distance along the earths surface
-		return computeDistanceBetween(center, northEast);
-	}
+    // return the distance along the earths surface
+    return computeDistanceBetween(center, northEast);
+  }
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: "",
@@ -114,7 +114,7 @@ function Map(props) {
         mapContainerStyle={mapContainerStyle}
         options={options}
         onLoad={onMapLoad}
-				onBoundsChanged={onBoundsChanged}
+        onBoundsChanged={onBoundsChanged}
       >
         {realtimeData.map((obj) => (
           <Marker
@@ -126,7 +126,7 @@ function Map(props) {
             onClick={() => {
               setSelectedMarker(obj);
             }}
-						rotation={obj.position.bearing}
+            rotation={obj.position.bearing}
           >
           </Marker>
         ))}
