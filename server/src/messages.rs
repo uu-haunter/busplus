@@ -1,10 +1,9 @@
+//! Messages used for internal communication between different actors (Lobby and WebsocketClient for example).
+
 use actix::prelude::{Message, Recipient};
 use uuid::Uuid;
 
-use crate::gtfs::transit_realtime::Position;
-
-// Messages in this file is used for internal communication between different
-// actors (Lobby and WebsocketClient for example).
+use crate::protocol::client_protocol::GeoPosition;
 
 // WebsocketClient responds to this to pipe it through to the actual client.
 #[derive(Debug, Message)]
@@ -31,6 +30,5 @@ pub struct Disconnect {
 #[rtype(result = "()")]
 pub struct PositionUpdate {
     pub self_id: Uuid,
-    pub radius: i32,
-    pub position: Position,
+    pub position: GeoPosition,
 }

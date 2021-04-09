@@ -1,9 +1,9 @@
+//! This files declares all possible values that the server should be able
+//! to output/send as JSON to the client.
+
 use serde::{Deserialize, Serialize};
 
 use crate::gtfs::transit_realtime::Position;
-
-/// This files declares all possible values that the server should be able
-/// to output/send as JSON to the client.
 
 /// This is all possible output the server should be able to send to the
 /// client. Every enumerated value in this type must have a:
@@ -18,7 +18,7 @@ pub enum ServerOutput {
     VehiclePositions(VehiclePositionsOutput),
 }
 
-// Represent a list of vehicles.
+/// Represent a list of vehicles.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VehiclePositionsOutput {
@@ -27,7 +27,7 @@ pub struct VehiclePositionsOutput {
     pub positions: Vec<Vehicle>,
 }
 
-// Represent a vehicle with an ID and a position.
+/// Represent a vehicle with an ID and a position.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vehicle {
@@ -35,7 +35,7 @@ pub struct Vehicle {
     pub position: Position,
 }
 
-// Represent a list of vehicles.
+/// Represent a list of vehicles.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Line {

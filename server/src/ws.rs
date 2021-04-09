@@ -131,8 +131,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                             // Send information to the lobby that the position should be updated.
                             self.lobby_addr.do_send(PositionUpdate {
                                 self_id: self.id,
-                                radius: inp.radius,
-                                position: inp.position,
+                                position: inp,
                             });
                         }
                     }

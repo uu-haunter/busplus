@@ -5,7 +5,7 @@ use actix::prelude::{Actor, Context, Handler, Recipient};
 use actix::AsyncContext;
 use uuid::Uuid;
 
-use crate::client::{ClientData, ClientPosition};
+use crate::client::ClientData;
 use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
 use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
@@ -164,12 +164,9 @@ impl Handler<PositionUpdate> for Lobby {
     fn handle(&mut self, msg: PositionUpdate, _: &mut Context<Self>) {
         let client_data = self.clients.get_mut(&msg.self_id).unwrap();
 
-        println!("previous position: {:#?}", client_data);
+        println!("updated position: {:#?}", msg.position);
 
         // Update the client's position to the new position.
-        client_data.update_position(ClientPosition {
-            radius: msg.radius,
-            position: msg.position,
-        });
+        client_data.update_position(msg.position);
     }
 }

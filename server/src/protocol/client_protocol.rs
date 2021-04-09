@@ -1,9 +1,7 @@
+//! This files declares all possible values that the client should be able
+//! to send as JSON to the server.
+
 use serde::{Deserialize, Serialize};
-
-use crate::gtfs::transit_realtime::Position;
-
-/// This files declares all possible values that the client should be able
-/// to send as JSON to the server.
 
 /// This is all possible inputs the server should be able to receive from a
 /// client. Every enumerated value in this type must have a:
@@ -15,15 +13,29 @@ use crate::gtfs::transit_realtime::Position;
 #[serde(tag = "type", content = "payload")]
 pub enum ClientInput {
     #[serde(rename = "geo-position-update")]
-    GeoPositionUpdate(GeoPositionInput),
+    GeoPositionUpdate(GeoPosition),
 }
 
-// Position data from the client.
+/// Position data from the client. Contains maximum distance and a position.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GeoPositionInput {
-    // The radius is the maximum distance (in metres) from the clients position
-    // on their map.
-    pub radius: i32,
-    pub position: Position,
+pub struct GeoPosition {
+    // The maximum distance (in metres) from the clients position on their map that information
+    // should be gathered from.
+    pub max_distance: i32,
+
+    // The client's position.
+    pub position: GeoPositionPoint,
+}
+
+/// GeoJSON "Point" representation, see https://geojson.org/ for more details.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GeoPositionPoint {
+    // Cannot name the struct field "type" since that is a reserved keyword in rust.
+    #[serde(rename = "type")]
+    pub position_type: String,
+
+    // The vector usuaully only have two values [longitude, latitude].
+    pub coordinates: Vec<f32>,
 }

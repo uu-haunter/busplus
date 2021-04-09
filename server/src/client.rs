@@ -2,17 +2,8 @@
 
 use uuid::Uuid;
 
-use crate::gtfs::transit_realtime::Position;
 use crate::lobby::Socket;
-
-/// Used to represent the positon of a client on their map. This is used to determined
-/// what data should be sent to the client depending on what can be seen on their
-/// map.
-#[derive(Debug)]
-pub struct ClientPosition {
-    pub radius: i32,
-    pub position: Position,
-}
+use crate::protocol::client_protocol::GeoPosition;
 
 /// State for a WebsocketClient. Holds information specific to each connection.
 #[derive(Debug)]
@@ -25,7 +16,7 @@ pub struct ClientData {
 
     // Where the client is currently positioned on their map. Used to send
     // relevant data to each individual client.
-    pub position: Option<ClientPosition>,
+    pub position: Option<GeoPosition>,
 }
 
 impl ClientData {
@@ -38,7 +29,7 @@ impl ClientData {
         }
     }
 
-    pub fn update_position(&mut self, position: ClientPosition) {
+    pub fn update_position(&mut self, position: GeoPosition) {
         self.position = Some(position);
     }
 }
