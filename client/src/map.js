@@ -27,7 +27,7 @@ function Map(props) {
 
 	useEffect(() => {
 		setRealtimeData(props.realtimeData);
-	}, [props.realtimeData]);
+	}, [realtimeData]);
 
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
