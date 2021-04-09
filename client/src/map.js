@@ -30,7 +30,7 @@ function Map(props) {
   }, []);
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyD2nxWN__H5vzHRFdYejT9v8_qLv9R8vUk",
+    googleMapsApiKey: "",
   });
 
   const mapContainerStyle = {
@@ -93,6 +93,7 @@ function Map(props) {
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
+        onClick={()=>{setSelectedMarker(null)}}
         onLoad={onMapLoad}
       >
         {arr.map((obj) => (
@@ -105,10 +106,16 @@ function Map(props) {
             onClick={() => {
               setSelectedMarker(obj);
             }}
+            icon={{
+              url: "/bus.svg",
+              origin: new window.google.maps.Point(0, 0),
+              anchor: new window.google.maps.Point(15, 15),
+              scaledSize: new window.google.maps.Size(30, 30),
+            }}
           >
           </Marker>
         ))}
-        {selectedMarker && (
+        {selectedMarker ? (
           <InfoWindow
             position={{
               lat: selectedMarker.position.latitude,
@@ -122,7 +129,7 @@ function Map(props) {
               <p>{`Bus ${selectedMarker.id} \n Passengers 15`}</p>
             </div>
           </InfoWindow>
-        )}
+        ): null}
 
         <Marker
           position={{
