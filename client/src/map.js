@@ -36,6 +36,8 @@ function Map(props) {
 
 	// called when the maps bounds are changed e.g. when a user drags the map
 	const onBoundsChanged = () => {
+		// TODO: uncomment this code once the server supports 'geo-position-update'
+		/*
 		let lat = mapRef.current.getCenter().lat();
 		let lng = mapRef.current.getCenter().lng();
 		let radius = getBoundingSphereRadius();
@@ -51,7 +53,8 @@ function Map(props) {
 			}
 		};
 
-		//TODO: send the message to the server
+		props.wsSend(JSON.stringify(message);
+		*/
 	};
 
 	// returns the radius of the maps bounding sphere in meters
@@ -59,6 +62,7 @@ function Map(props) {
 		let center = mapRef.current.getBounds().getCenter();
 		let northEast = mapRef.current.getBounds().getNorthEast();
 
+		// return the distance along the earths surface
 		return computeDistanceBetween(center, northEast);
 	}
 

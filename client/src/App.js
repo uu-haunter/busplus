@@ -10,17 +10,25 @@ class App extends React.Component {
 		this.state = {
 			realtimeData: []
 		};
+		this.ws = null;
+		this.wsSend = this.wsSend.bind(this);
+	};
+
+	wsSend(message) {
+		if(this.ws) {
+			console.log("Sending message", message);
+			this.ws.send(message);
+		}
 	};
 
 	componentDidMount() {
 		let ws = new WebSocket("ws://localhost:8080/ws");
 		ws.onopen = () => {
+			this.ws = ws;
 			console.log('Connected!');
-			ws.send('Echo');
 		};
 		ws.onmessage = event => {
-			console.log('Message received');
-			console.log(event.data);
+			console.log('Message received', event.data);
 			// handle received data here
 		};
 		ws.onerror = () => {
@@ -36,6 +44,7 @@ class App extends React.Component {
 			<div className="App">
 	      <div className = "App-header">
 	      	<Map
+						wsSend={this.wsSend}
 						realtimeData={this.state.realtimeData}
 					/>
 	        <SearchBar/>
@@ -47,4 +56,3 @@ class App extends React.Component {
 }
 
 export default App;
-
