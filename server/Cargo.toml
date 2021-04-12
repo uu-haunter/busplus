@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "bus_plus"
 version = "0.1.0"
 authors = ["Joel <joel.attano@gmail.com>"]
 edition = "2018"

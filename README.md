@@ -7,3 +7,15 @@ In order for the server to work you need to create a config file in the root dir
 trafiklab_api:
   api_key: <very secret api key>
 ```
+
+## Documentation
+
+In order to generate documentation for the server code that is written in Rust, navigate to the `server` directory and run:
+
+```bash
+# Generates documentation in "target/doc/server/"
+cargo doc --no-deps
+
+# Add "--open" to open the documentation in a browser when it's been generated.
+cargo doc --no-deps --open
+```
