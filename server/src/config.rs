@@ -48,8 +48,8 @@ impl Config {
 
         Ok(())
     }
-     /// Gets a key value from the config section in the config file.
-    pub fn get_config_value(&self, field: &str,key: &str) -> Option<&str> {
+    /// Gets a key value from the config section in the config file.
+    pub fn get_config_value(&self, field: &str, key: &str) -> Option<&str> {
         // If the documents vector is empty that means we haven't loaded in any config
         // file yet, so None is returned.
         if self.documents.is_empty() {
@@ -65,12 +65,9 @@ impl Config {
         self.get_config_value(TRAFIKLAB_YAML_KEY, key)
     }
 
-    pub fn get_database_value(&self, key: &str) -> Option<&str>{
+    pub fn get_database_value(&self, key: &str) -> Option<&str> {
         self.get_config_value(DATABASE_YAML_KEY, key)
     }
-    
-
-
 }
 
 #[cfg(test)]
@@ -84,10 +81,9 @@ mod tests {
     const TEST_FILE_NAME: &str = "test_config.yml";
     const TEST_API_KEY: &str = "api_key";
     const TEST_API_KEY_VALUE: &str = "a12b34c567d89";
-    
+
     const TEST_DATABASE_KEY: &str = "test_uri";
     const TEST_DATABASE_KEY_VALUE: &str = "testconnectionstring";
-
 
     #[test]
     fn test_config() -> std::io::Result<()> {
@@ -98,8 +94,12 @@ mod tests {
 {}:
   {}: {}
 ",
-            TRAFIKLAB_YAML_KEY, TEST_API_KEY, TEST_API_KEY_VALUE, 
-            DATABASE_YAML_KEY, TEST_DATABASE_KEY, TEST_DATABASE_KEY_VALUE
+            TRAFIKLAB_YAML_KEY,
+            TEST_API_KEY,
+            TEST_API_KEY_VALUE,
+            DATABASE_YAML_KEY,
+            TEST_DATABASE_KEY,
+            TEST_DATABASE_KEY_VALUE
         );
 
         // Create a temporary directory to create the config file in.
@@ -126,14 +126,8 @@ mod tests {
             config_handler.get_trafiklab_value("bad_key").is_none(),
             true
         );
-        assert_eq!(
-            config_handler.get_database_value("bad_key").is_none(),
-            true
-        );
-        
-        
-        
-        
+        assert_eq!(config_handler.get_database_value("bad_key").is_none(), true);
+
         let get_key_result_database = config_handler.get_database_value(TEST_DATABASE_KEY);
         let get_key_result_trafik = config_handler.get_trafiklab_value(TEST_API_KEY);
 
