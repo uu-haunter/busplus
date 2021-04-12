@@ -1,5 +1,6 @@
 mod client;
 mod config;
+mod database;
 mod endpoints;
 mod gtfs;
 mod lobby;
@@ -11,6 +12,8 @@ use actix::Actor;
 use actix_web::{App, HttpServer};
 
 use crate::config::Config;
+use crate::database::init_connection;
+use crate::database::Connection;
 use crate::endpoints::ws_endpoint as ws_endpoint_route;
 use crate::lobby::Lobby;
 
@@ -28,6 +31,10 @@ async fn main() -> std::io::Result<()> {
 
     // Try to get the API key from the parsed cofig.
     let api_key = config_handler.get_trafiklab_value("api_key").unwrap();
+
+    // Get Database URI from config
+    let db_uri = config_handler.get_database_value("uri").unwrap();
+    let conn = init_connection(db_uri);
 
     // Create the common/shared state.
     let lobby = Lobby::new(api_key).start();
