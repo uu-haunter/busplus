@@ -1,8 +1,10 @@
+mod client;
 mod config;
 mod endpoints;
 mod gtfs;
 mod lobby;
 mod messages;
+mod protocol;
 mod ws;
 
 use actix::Actor;

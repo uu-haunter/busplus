@@ -5,7 +5,8 @@ use actix_web_actors::ws;
 use uuid::Uuid;
 
 use crate::lobby::Lobby;
-use crate::messages::{Connect, Disconnect, WsMessage};
+use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
+use crate::protocol::client_protocol::ClientInput;
 
 // How often heartbeat pings are sent.
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -119,13 +120,26 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
             }
             Ok(ws::Message::Nop) => (),
             Ok(ws::Message::Text(text)) => {
-                // TODO: Here we should parse incoming messages (as JSON?).
-                // It could also be useful to send messages to the lobby here in
-                // order to echo out to all connected clients of some event at a
-                // later point in time.
+                // Try to parse the text received as a JSON representation of a ClientInput object.
+                let parse_result = serde_json::from_str::<ClientInput>(&text);
 
-                // For now we echo back to the user what they've sent.
-                ctx.text(text);
+                // Check if the parsing was sucessful.
+                if let Ok(parsed_input) = parse_result {
+                    // If it was successful, pattern match on what type of input was received.
+                    match parsed_input {
+                        ClientInput::GeoPositionUpdate(inp) => {
+                            // Send information to the lobby that the position should be updated.
+                            self.lobby_addr.do_send(PositionUpdate {
+                                self_id: self.id,
+                                position: inp,
+                            });
+                        }
+                    }
+                } else {
+                    // TODO: If the message sent by the client is not parseable as JSON, an error message
+                    // should be sent back to the user.
+                    ctx.text("error");
+                }
             }
 
             // TODO: Change this panic to something else (log and disconnect?).
