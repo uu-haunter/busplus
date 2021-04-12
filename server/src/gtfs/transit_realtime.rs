@@ -1,4 +1,4 @@
-// Automatically generated rust module for 'gtfs-realtime.proto' file
+//! Automatically generated rust module for 'gtfs-realtime.proto' file.
 
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]

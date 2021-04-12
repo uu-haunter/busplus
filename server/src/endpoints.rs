@@ -1,12 +1,13 @@
-use crate::lobby::Lobby;
-use crate::ws::WebsocketClient;
+//! All endpoints that are exposed through the webserver.
+
 use actix::Addr;
 use actix_web::{get, web::Data, web::Payload, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 
-// This file contains all HTTP endpoints that are exposed by the webserver.
+use crate::lobby::Lobby;
+use crate::ws::WebsocketClient;
 
-// This endpoint function is called whenever a request is sent to the "/ws" route.
+/// Endpoint for creating a WebSocket connection from a HTTP request.
 #[get("/ws")]
 pub async fn ws_endpoint(
     req: HttpRequest,

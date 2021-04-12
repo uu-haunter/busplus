@@ -35,6 +35,9 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || App::new().service(ws_endpoint_route).data(lobby.clone()))
         // The "0.0.0.0" means that the server accepts requests from any host (127.0.0.1, 192.168.x.x, etc..)
         .bind("0.0.0.0:8080")?
+        // By default, `run()` starts the server with the same amount of threads as logical CPU cores on the host
+        // machine. This can be configured with the method `workers()`, which sets the starting number of threads
+        // when the server is started.
         .run()
         .await
 }

@@ -1,3 +1,5 @@
+//! Utility for reading values from a config file.
+
 use std::fs;
 use std::path::Path;
 
