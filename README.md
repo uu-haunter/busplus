@@ -6,6 +6,9 @@ In order for the server to work you need to create a config file in the root dir
 ```yml
 trafiklab_api:
   api_key: <very secret api key>
+
+database:
+  uri: <very secret connection uri>
 ```
 
 ## Documentation

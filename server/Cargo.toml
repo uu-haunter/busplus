@@ -20,3 +20,4 @@ protobuf = { version = "2", features = ["with-bytes"] }
 quick-protobuf = "0.8.0"
 curl = "0.4.35"
 yaml-rust = "0.4.5"
+mongodb = "2.0.0-alpha"
