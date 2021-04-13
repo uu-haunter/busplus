@@ -128,6 +128,7 @@ function Map(props) {
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
+        onClick={()=>{setSelectedMarker(null)}}
         onLoad={onMapLoad}
         onBoundsChanged={onBoundsChanged}
       >
