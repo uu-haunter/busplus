@@ -12,6 +12,7 @@ import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
 
+
 function Map(props) {
   const defaultLat = 59.8585;
   const defaultLng = 17.6389;
@@ -24,9 +25,23 @@ function Map(props) {
   const [realtimeData, setRealtimeData] = useState(props.realtimeData);
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const [markers, setMarkers] = useState([]);
 
   useEffect(() => {
     setRealtimeData(props.realtimeData);
+    setMarkers(
+      props.realtimeData.map(obj => (
+        <Marker
+          key={obj.id}
+          position={{
+            lat: obj.position.latitude,
+            lng: obj.position.longitude,
+          }}
+          onClick={() => {setSelectedMarker(obj);}}
+        >
+        </Marker>
+      ))
+    );
   }, [props.realtimeData]);
 
   const mapRef = React.useRef();
@@ -45,15 +60,15 @@ function Map(props) {
     let message = {
       "type": "geo-position-update",
       "payload": {
-        "radius": radius,
+        "maxDistance": radius,
         "position": {
-          "latitude": lat,
-          "longitude": lng
+          "type": "Point",
+          "coordinates": [lat, lng]
         }
       }
     };
 
-    props.wsSend(JSON.stringify(message);
+    props.wsSend(JSON.stringify(message));
     */
   };
 
@@ -116,20 +131,7 @@ function Map(props) {
         onLoad={onMapLoad}
         onBoundsChanged={onBoundsChanged}
       >
-        {realtimeData.map((obj) => (
-          <Marker
-            key={obj.id}
-            position={{
-              lat: obj.position.latitude,
-              lng: obj.position.longitude,
-            }}
-            onClick={() => {
-              setSelectedMarker(obj);
-            }}
-            rotation={obj.position.bearing}
-          >
-          </Marker>
-        ))}
+        {markers}
         {selectedMarker && (
           <InfoWindow
             position={{
