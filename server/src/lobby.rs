@@ -34,6 +34,7 @@ impl Lobby {
             trafiklab: TrafiklabApi::new(api_key),
         };
 
+        // Fetch initial data.
         lobby
             .trafiklab
             .fetch_vehicle_positions()
@@ -55,9 +56,15 @@ impl Lobby {
     // clients.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(API_FETCH_INTERVAL, |act, _| {
-            // TODO: Fetch data from the Trafiklab API (uncomment the line below and handle
-            // any errors correctly).
-            //act.trafiklab.fetch_vehicle_positions();
+            // TODO: Fetch data from the Trafiklab API (uncomment the lines below).
+            /*
+            if act.trafiklab.fetch_vehicle_positions().is_err() {
+                println!("Failed to retrieve data from Trafiklab Realtime API. API Down?");
+
+                // Important to return since we do not have any data to send to the clients.
+                return;
+            }
+            */
 
             let vehicle_data = act.trafiklab.get_vehicle_positions().unwrap();
 
