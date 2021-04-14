@@ -54,6 +54,9 @@ impl TrafiklabApi {
     /// To retrieve the data that was fetched, use `get_vehicle_positions()`.
     /// If Err(reason) is returned, reason is the error reason sent back by the Trafiklab API.
     pub fn fetch_vehicle_positions(&mut self) -> Result<(), String> {
+        // Clear any previous data stored in the local buffer.
+        self.raw_data.clear();
+
         let mut handle = Easy::new();
         handle
             .url(&format!("{}{}", TRAFIKLAB_VEH_POS_API_URL, self.api_key))

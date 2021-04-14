@@ -1,15 +1,17 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   GoogleMap,
   useLoadScript,
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
+import { computeDistanceBetween } from 'spherical-geometry-js';
 import Fab from "@material-ui/core/Fab";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
+
 
 function Map(props) {
   const defaultLat = 59.8585;
@@ -23,14 +25,64 @@ function Map(props) {
   const [realtimeData, setRealtimeData] = useState(props.realtimeData);
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const [markers, setMarkers] = useState([]);
+
+  useEffect(() => {
+    setRealtimeData(props.realtimeData);
+    setMarkers(
+      props.realtimeData.map(obj => (
+        <Marker
+          key={obj.id}
+          position={{
+            lat: obj.position.latitude,
+            lng: obj.position.longitude,
+          }}
+          onClick={() => {setSelectedMarker(obj);}}
+        >
+        </Marker>
+      ))
+    );
+  }, [props.realtimeData]);
 
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
     mapRef.current = map;
   }, []);
 
+  // called when the maps bounds are changed e.g. when a user drags the map
+  const onBoundsChanged = () => {
+    // TODO: uncomment this code once the server supports 'geo-position-update'
+    /*
+    let lat = mapRef.current.getCenter().lat();
+    let lng = mapRef.current.getCenter().lng();
+    let radius = getBoundingSphereRadius();
+
+    let message = {
+      "type": "geo-position-update",
+      "payload": {
+        "maxDistance": radius,
+        "position": {
+          "type": "Point",
+          "coordinates": [lat, lng]
+        }
+      }
+    };
+
+    props.wsSend(JSON.stringify(message));
+    */
+  };
+
+  // returns the radius of the maps bounding sphere in meters
+  const getBoundingSphereRadius = () => {
+    let center = mapRef.current.getBounds().getCenter();
+    let northEast = mapRef.current.getBounds().getNorthEast();
+
+    // return the distance along the earths surface
+    return computeDistanceBetween(center, northEast);
+  }
+
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyD2nxWN__H5vzHRFdYejT9v8_qLv9R8vUk",
+    googleMapsApiKey: "",
   });
 
   const mapContainerStyle = {
@@ -66,23 +118,6 @@ function Map(props) {
     }
   };
 
-  var arr = [
-    {
-      id: 1,
-      position: {
-        latitude: 59.8595,
-        longitude: 17.6389,
-      },
-    },
-    {
-      id: 2,
-      position: {
-        latitude: 59.8575,
-        longitude: 17.6399,
-      },
-    },
-  ];
-
   if (loadError) return "Error";
   if (!isLoaded) return "Loading...";
 
@@ -93,21 +128,11 @@ function Map(props) {
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
+        onClick={()=>{setSelectedMarker(null)}}
         onLoad={onMapLoad}
+        onBoundsChanged={onBoundsChanged}
       >
-        {arr.map((obj) => (
-          <Marker
-            key={obj.id}
-            position={{
-              lat: obj.position.latitude,
-              lng: obj.position.longitude,
-            }}
-            onClick={() => {
-              setSelectedMarker(obj);
-            }}
-          >
-          </Marker>
-        ))}
+        {markers}
         {selectedMarker && (
           <InfoWindow
             position={{
@@ -119,7 +144,7 @@ function Map(props) {
             }}
           >
             <div>
-              <p>{`Bus ${selectedMarker.id} \n Passengers 15`}</p>
+              <p>{`Bus ${selectedMarker.id} \n Passengers ${selectedMarker.passengers} / ${selectedMarker.capacity}`}</p>
             </div>
           </InfoWindow>
         )}
