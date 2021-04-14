@@ -1,3 +1,5 @@
+//! Keeps track of all connected clients and a shared state.
+
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -10,20 +12,20 @@ use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
 use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
 
-// The interval in which data is fetched from the external Trafiklab API and
-// echoed out to all connected users.
+/// The interval in which data is fetched from the external Trafiklab API and
+/// echoed out to all connected users.
 const API_FETCH_INTERVAL: Duration = Duration::from_secs(5);
 
-// Type alias, which is essentially an address to an actor which you can
-// send messages to.
+/// Type alias, which is essentially an address to an actor which you can
+/// send messages to.
 pub type Socket = Recipient<WsMessage>;
 
-// The lobby keeps track of a common/shared state between all clients.
+/// The lobby keeps track of a common/shared state between all clients.
 pub struct Lobby {
-    // Maps client IDs to a Socket.
+    /// Maps client IDs to client data.
     clients: HashMap<Uuid, ClientData>,
 
-    // Handle to communicate with Trafiklab's API.
+    /// Handle to communicate with Trafiklab's API.
     trafiklab: TrafiklabApi,
 }
 
@@ -43,7 +45,7 @@ impl Lobby {
         lobby
     }
 
-    // Returns POSIX timestamp in seconds since 1970-01-01 00:00:00.
+    /// Returns POSIX timestamp in seconds since 1970-01-01 00:00:00.
     fn get_current_timestamp() -> u64 {
         let start = std::time::SystemTime::now();
         let since_epoch_start = start.duration_since(std::time::UNIX_EPOCH).unwrap();
@@ -51,9 +53,7 @@ impl Lobby {
         since_epoch_start.as_secs()
     }
 
-    // This method starts an interval which fetches new data from the Trafiklab API,
-    // (TODO: inserts it into the database), and sends new data out to all connected
-    // clients.
+    /// This method starts an interval which fetches new data from the Trafiklab API.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(API_FETCH_INTERVAL, |act, _| {
             // TODO: Fetch data from the Trafiklab API (uncomment the lines below).
@@ -103,7 +103,7 @@ impl Lobby {
 }
 
 impl Lobby {
-    // Sends a message to a specific client.
+    /// Sends a message to a specific client.
     fn send_message(&self, message: &str, id_to: &Uuid) {
         if let Some(recipient) = self.clients.get(id_to) {
             let _ = recipient.addr.do_send(WsMessage(message.to_owned()));
@@ -112,14 +112,14 @@ impl Lobby {
         }
     }
 
-    // Sends a message to every connected client stored in self.clients.
+    /// Sends a message to every connected client stored in self.clients.
     fn send_to_everyone(&self, message: &str) {
         self.clients
             .keys()
             .for_each(|client_id| self.send_message(message, client_id));
     }
 
-    // Sends a message to every connected client stored in self.clients.
+    /// Sends a message to every connected client stored in self.clients.
     fn send_to_everyone_except_self(&self, message: &str, self_id: &Uuid) {
         self.clients
             .keys()

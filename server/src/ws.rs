@@ -1,3 +1,5 @@
+//! Everything related to managing a WebSocket connection.
+
 use std::time::{Duration, Instant};
 
 use actix::prelude::*;
@@ -8,16 +10,21 @@ use crate::lobby::Lobby;
 use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
 use crate::protocol::client_protocol::ClientInput;
 
-// How often heartbeat pings are sent.
+/// How often heartbeat pings are sent.
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 
-// How long before lack of client response causes a timeout.
+/// How long before lack of client response causes a timeout.
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
-// Represents a client connected to the server via an open Websocket connection.
+/// Represents a client connected to the server via an open Websocket connection.
 pub struct WebsocketClient {
+    /// Address to communicate with the lobby actor.
     lobby_addr: Addr<Lobby>,
+
+    /// Unique ID to identify each client.
     id: Uuid,
+
+    /// Timestamp for the latest received message from the client (heartbeat).
     hb: Instant,
 }
 
@@ -30,8 +37,8 @@ impl WebsocketClient {
         }
     }
 
-    // Starts an interval which runs a function that checks if we've gotten a
-    // response from the user/any ping sent during the CLIENT_TIMEMOUT duration.
+    /// Starts an interval which runs a function that checks if we've gotten a
+    /// response from the user/any ping sent during the `CLIENT_TIMEMOUT` duration.
     pub fn hb(&self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             // Check if the duration since we've gotten a response from the client

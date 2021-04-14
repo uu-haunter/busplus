@@ -1,5 +1,4 @@
-//! This files declares all possible values that the client should be able
-//! to send as JSON to the server.
+//! All possible values that the client should be able to send as JSON to the server.
 
 use serde::{Deserialize, Serialize};
 

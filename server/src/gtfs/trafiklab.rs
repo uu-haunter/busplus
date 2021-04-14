@@ -1,3 +1,5 @@
+//! Interface for receiving and storing data from Trafiklab's API:s.
+
 use std::str::from_utf8;
 
 use curl::easy::Easy;
@@ -6,17 +8,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::gtfs::transit_realtime::FeedMessage;
 
-/// The data the Trafiklab provides in their "GTFS Regional Realtime (Beta)" API is
-/// Protocol Buffer data, it needs to be decompressed and then parsed into human-readable data
-/// in order to be handled in a practical manner.
-///
-/// A detailed description (in Protocol Buffer format) of the data that is retrieved from
-/// Trafiklab can be found here: /// https://github.com/google/transit/blob/master/gtfs-realtime/proto/gtfs-realtime.proto
-///
-/// Read more about protocol buffers here: https://developers.google.com/protocol-buffers/docs/overview
-
+// The data the Trafiklab provides in their "GTFS Regional Realtime (Beta)" API is
+// Protocol Buffer data, it needs to be decompressed and then parsed into human-readable data
+// in order to be handled in a practical manner.
+//
+// A detailed description (in Protocol Buffer format) of the data that is retrieved from
+// Trafiklab can be found here: /// https://github.com/google/transit/blob/master/gtfs-realtime/proto/gtfs-realtime.proto
+//
+// Read more about protocol buffers here: https://developers.google.com/protocol-buffers/docs/overview
+//
 // API Description URL: https://www.trafiklab.se/api/gtfs-regional-realtime-beta
-const TRAFIKLAB_API_URL: &str =
+
+/// The URL for Trafiklab's Vehicle Positions API.
+const TRAFIKLAB_VEH_POS_API_URL: &str =
     "https://opendata.samtrafiken.se/gtfs-rt/ul/VehiclePositions.pb?key=";
 
 /// Struct for representing JSON error data received from the Trafiklab API.
@@ -55,7 +59,7 @@ impl TrafiklabApi {
 
         let mut handle = Easy::new();
         handle
-            .url(&format!("{}{}", TRAFIKLAB_API_URL, self.api_key))
+            .url(&format!("{}{}", TRAFIKLAB_VEH_POS_API_URL, self.api_key))
             .unwrap();
 
         // We must use the "Accept-Encoding: gzip", since the protocol buffer data is compressed.

@@ -1,4 +1,4 @@
-//! Information about individual clients that the lobby needs to keep track of.
+//! Information about individual clients connected to the lobby.
 
 use uuid::Uuid;
 
@@ -8,14 +8,14 @@ use crate::protocol::client_protocol::GeoPosition;
 /// State for a WebsocketClient. Holds information specific to each connection.
 #[derive(Debug)]
 pub struct ClientData {
-    // Unique id.
+    /// Unique id.
     pub id: Uuid,
 
-    // An address to communicate with the client actor.
+    /// An address to communicate with the client actor.
     pub addr: Socket,
 
-    // Where the client is currently positioned on their map. Used to send
-    // relevant data to each individual client.
+    /// Where the client is currently positioned on their map. Used to send
+    /// relevant data to each individual client.
     pub position: Option<GeoPosition>,
 }
 
@@ -29,6 +29,7 @@ impl ClientData {
         }
     }
 
+    /// Updates the clients position.
     pub fn update_position(&mut self, position: GeoPosition) {
         self.position = Some(position);
     }

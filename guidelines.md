@@ -45,3 +45,73 @@ The following things are qualities that should be checked on every pull request:
 
 Things that might be worth adding in the future:
 - Building the client and the server and making some requests between them with a test program (system test).
+
+# Writing code in Rust
+
+## Use statements
+
+The rust formatter (`cargo fmt`) only provides a way to sort `use` statements alphabetically, but not in regards to their "origin" (`std`, `crate` or 3rd party crates).
+
+Example: 
+```rust
+use crate::lobby::Lobby;
+use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
+use crate::protocol::client_protocol::ClientInput;
+use actix::prelude::*;
+use actix_web_actors::ws;
+use std::time::{Duration, Instant};
+use uuid::Uuid;
+```
+
+To keep things easy to read, sort use statements in the following order:
+```rust
+// 1) Standard library
+use std::time::{Duration, Instant};
+
+// 2) 3rd party crates
+use actix::prelude::*;
+use actix_web_actors::ws;
+use uuid::Uuid;
+
+// 3) Internal modules (preferred to be prefixed with "crate" but can be omitted).
+use crate::lobby::Lobby;
+use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
+use crate::protocol::client_protocol::ClientInput;
+```
+
+## Comments/Documentation
+Rust provides two ways to comment your code 
+* Using two slashes, `//`, which is interpreted similar to white space (as in most programming languages).
+* Using three slashes, `///`, which is a "doc" comment. Comments that start with three slashes are shown in the generated documentation
+
+Document comments should be used when describing structs, methods, constants, etc. Normal comments are best suited to describe internal behaviour inside a function for example. See the following example:
+
+```rust
+/// A UTF-8–encoded, growable string.
+pub struct String {
+    vec: Vec<u8>,
+}
+
+impl String {
+    /// Returns the length of this String, in bytes, not chars or graphemes.
+    /// In other words, it may not be what a human considers the length of the string.
+    pub fn len(&self) -> usize {
+        // Returns the length of the internal vector.
+        self.vec.len()
+    }
+}
+```
+
+When creating a new file, the first row(s) should contain a description of what is in that file using the `//!` comment, for example:
+
+```rust
+1 | //! Utilities for managing client connections.
+2 |
+3 | pub struct ClientConnection {
+4 |     ...
+5 | }
+6 |  
+7 | ...
+```
+
+See a detailed specification of comments/documentation in Rust [here](https://doc.rust-lang.org/reference/comments.html).
