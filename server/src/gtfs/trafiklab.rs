@@ -1,8 +1,10 @@
-use crate::gtfs::transit_realtime::FeedMessage;
+use std::str::from_utf8;
+
 use curl::easy::Easy;
 use quick_protobuf::{BytesReader, MessageRead};
 use serde::{Deserialize, Serialize};
-use std::str::from_utf8;
+
+use crate::gtfs::transit_realtime::FeedMessage;
 
 /// The data the Trafiklab provides in their "GTFS Regional Realtime (Beta)" API is
 /// Protocol Buffer data, it needs to be decompressed and then parsed into human-readable data
@@ -48,6 +50,9 @@ impl TrafiklabApi {
     /// To retrieve the data that was fetched, use `get_vehicle_positions()`.
     /// If Err(reason) is returned, reason is the error reason sent back by the Trafiklab API.
     pub fn fetch_vehicle_positions(&mut self) -> Result<(), String> {
+        // Clear any previous data stored in the local buffer.
+        self.raw_data.clear();
+
         let mut handle = Easy::new();
         handle
             .url(&format!("{}{}", TRAFIKLAB_API_URL, self.api_key))
