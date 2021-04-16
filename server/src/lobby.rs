@@ -8,6 +8,7 @@ use actix::AsyncContext;
 use uuid::Uuid;
 
 use crate::client::ClientData;
+use crate::config::{Config, CONFIG_FILE_PATH};
 use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
 use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
@@ -30,17 +31,34 @@ pub struct Lobby {
 }
 
 impl Lobby {
-    pub fn new(api_key: &str) -> Self {
+    pub fn new() -> Self {
+        let mut config_handler = Config::new();
+
+        // If the load somehow fails the program will panic since it cannot operate
+        // without the necessary data.
+        if let Err(reason) = config_handler.load_config(CONFIG_FILE_PATH) {
+            panic!("{}", reason);
+        }
+
+        // Try to get the API keys from the parsed config. This program is supposed to panic
+        // when one of these fail to retrieve a value, hence the unwrap call.
+        let realtime_key = config_handler
+            .get_trafiklab_value("realtime_key")
+            .expect("realtime_key is missing from trafiklab in  file.");
+        let static_key = config_handler
+            .get_trafiklab_value("static_key")
+            .expect("static_key is missing from trafiklab in config file.");
+
         let mut lobby = Lobby {
             clients: HashMap::new(),
-            trafiklab: TrafiklabApi::new(api_key),
+            trafiklab: TrafiklabApi::new(realtime_key, static_key),
         };
 
-        // Fetch initial data.
+        // Fetch initial realtime data.
         lobby
             .trafiklab
             .fetch_vehicle_positions()
-            .expect("Could not fetch data from Trafiklab.");
+            .expect("Could not fetch realtime data from Trafiklab.");
 
         lobby
     }

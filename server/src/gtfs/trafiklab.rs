@@ -1,10 +1,14 @@
 //! Interface for receiving and storing data from Trafiklab's API:s.
 
+use std::fs::File;
+use std::io::prelude::*;
 use std::str::from_utf8;
 
 use curl::easy::Easy;
 use quick_protobuf::{BytesReader, MessageRead};
 use serde::{Deserialize, Serialize};
+use tempdir::TempDir;
+use zip::ZipArchive;
 
 use crate::gtfs::transit_realtime::FeedMessage;
 
@@ -23,6 +27,9 @@ use crate::gtfs::transit_realtime::FeedMessage;
 const TRAFIKLAB_VEH_POS_API_URL: &str =
     "https://opendata.samtrafiken.se/gtfs-rt/ul/VehiclePositions.pb?key=";
 
+/// The URL for Trafiklab's Static Data API.
+const TRAFIKLAB_STATIC_API_URL: &str = "https://opendata.samtrafiken.se/gtfs/ul/ul.zip?key=";
+
 /// Struct for representing JSON error data received from the Trafiklab API.
 /// Example JSON:
 ///
@@ -38,19 +45,94 @@ struct TrafiklabError {
 
 /// Contains necessary data in order to communicate with and receive data from Trafiklab's API.
 pub struct TrafiklabApi {
-    api_key: String,
+    realtime_key: String,
+    static_key: String,
+
+    // Handle to a directory that contains static files. None means that there are no fetched
+    // static files.
+    static_files: Option<TempDir>,
+
+    // Raw data received from the realtime API endpoint.
     raw_data: Vec<u8>,
 }
 
 impl TrafiklabApi {
-    pub fn new(api_key: &str) -> Self {
+    pub fn new(realtime_key: &str, static_key: &str) -> Self {
         TrafiklabApi {
-            api_key: api_key.to_owned(),
+            realtime_key: String::from(realtime_key),
+            static_key: String::from(static_key),
+            static_files: None,
             raw_data: Vec::new(),
         }
     }
 
-    /// Makes a request to the trafiklab API endpoint and stores the received data.
+    /// Makes a request to Trafiklab's API for static data. The files that are received from the
+    /// request is stored in the OS's temporary folder (%temp% on Windows).
+    pub fn fetch_static_data(&mut self) -> Result<(), ()> {
+        // Byte array for the raw data received from the API.
+        let mut zip_data: Vec<u8> = Vec::new();
+
+        let mut handle = Easy::new();
+        handle
+            .url(&format!("{}{}", TRAFIKLAB_STATIC_API_URL, self.static_key))
+            .unwrap();
+
+        // We must use the "Accept-Encoding: gzip", since the protocol buffer data is compressed.
+        handle.accept_encoding("gzip").unwrap();
+
+        {
+            let mut transfer = handle.transfer();
+            transfer
+                .write_function(|data| {
+                    // Write the received raw data to the byte array.
+                    zip_data.extend_from_slice(data);
+                    Ok(data.len())
+                })
+                .unwrap();
+
+            // Try to perform the request and if it fails, return.
+            if let Err(_) = transfer.perform() {
+                return Err(());
+            }
+        }
+
+        // Create temporary directory to store the downloaded zip file in.
+        let temp_dir = TempDir::new("trafiklab-static-data").unwrap();
+        let zip_output_path = temp_dir.path().join("output.zip");
+
+        {
+            // Write the contents to the output file and then close the handle
+            // when the scope is exited.
+            let mut file = File::create(&zip_output_path).unwrap();
+            file.write_all(&zip_data).unwrap();
+        }
+
+        // Open the file to get a handle for it (we cannot keep the last file handle
+        // open since we get permission errors from the OS, so we reopen it).
+        let file = File::open(&zip_output_path).unwrap();
+
+        // Unzip the archive and place it's contentes into the temporary directory.
+        let mut archive = ZipArchive::new(file).unwrap();
+        archive.extract(temp_dir.path()).unwrap();
+
+        // Store the handle for the temporary directory.
+        self.static_files = Some(temp_dir);
+
+        Ok(())
+    }
+
+    /// Deletes all static data (if any are downloaded).
+    pub fn delete_static_data(&mut self) {
+        if self.static_files.is_some() {
+            // Drop the directory, essentially removing all the temporary directory
+            // and all files in it.
+            drop(self.static_files.as_ref());
+
+            self.static_files = None;
+        }
+    }
+
+    /// Makes a request to the Trafiklab API endpoint and stores the received data.
     /// To retrieve the data that was fetched, use `get_vehicle_positions()`.
     /// If Err(reason) is returned, reason is the error reason sent back by the Trafiklab API.
     pub fn fetch_vehicle_positions(&mut self) -> Result<(), String> {
@@ -59,7 +141,10 @@ impl TrafiklabApi {
 
         let mut handle = Easy::new();
         handle
-            .url(&format!("{}{}", TRAFIKLAB_VEH_POS_API_URL, self.api_key))
+            .url(&format!(
+                "{}{}",
+                TRAFIKLAB_VEH_POS_API_URL, self.realtime_key
+            ))
             .unwrap();
 
         // We must use the "Accept-Encoding: gzip", since the protocol buffer data is compressed.
@@ -117,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_get_vehicle_positions() {
-        let handler = TrafiklabApi::new("this_doesnt_matter");
+        let handler = TrafiklabApi::new("this_doesnt_matter", "neither_does_this");
         let get_result = handler.get_vehicle_positions();
 
         // Since we haven't called "fetch_vehicle_positions()", we have not received
@@ -127,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_bad_api_key() {
-        let mut handler = TrafiklabApi::new("this_is_not_a_valid_key");
+        let mut handler = TrafiklabApi::new("this_is_not_a_valid_key", "neither_does_this");
         let request_result = handler.fetch_vehicle_positions();
 
         // When making a request with a bad api_key an error should always be returned
