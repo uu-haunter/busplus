@@ -11,8 +11,21 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum ClientInput {
+    #[serde(rename = "get-line-info")]
+    GetLineInformation(LineInformation)
+
+    #[serde(rename = "get-route-info")]
+    GetRouteInformation(LineInformation)
+
     #[serde(rename = "geo-position-update")]
     GeoPositionUpdate(GeoPosition),
+}
+
+/// Contains a line number
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LineInformation {
+    pub line: String,
 }
 
 /// Position data from the client. Contains maximum distance and a position.
