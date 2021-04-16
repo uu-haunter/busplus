@@ -7,6 +7,7 @@ import {
   InfoWindow,
 } from "@react-google-maps/api";
 import { computeDistanceBetween } from 'spherical-geometry-js';
+import { Polyline } from '@react-google-maps/api';
 import Fab from "@material-ui/core/Fab";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
@@ -26,9 +27,39 @@ function Map(props) {
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markers, setMarkers] = useState([]);
+  const [currentRoute, setRoute] = useState([]);
+
+  const polyLineOptions = {
+    strokeColor: '#FF0000',
+    strokeOpacity: 0.8,
+    strokeWeight: 2,
+    fillColor: '#FF0000',
+    fillOpacity: 0.35,
+    clickable: false,
+    draggable: false,
+    editable: false,
+    visible: true,
+    radius: 30000,
+    paths: [
+      {lat: 37.772, lng: -122.214},
+      {lat: 21.291, lng: -157.821},
+      {lat: -18.142, lng: 178.431},
+      {lat: -27.467, lng: 153.027}
+    ],
+    zIndex: 1
+  };
+
+  const routeRequest = (lineNo) => {
+    return {
+        "type": "get-route-info",
+        "payload": {
+          "line": lineNo
+        }
+    };
+  };
 
   useEffect(() => {
-    setRealtimeData(props.realtimeData);
+    //setRealtimeData(props.realtimeData);
     setMarkers(
       props.realtimeData.map(obj => (
         <Marker
@@ -37,12 +68,23 @@ function Map(props) {
             lat: obj.position.latitude,
             lng: obj.position.longitude,
           }}
-          onClick={() => {setSelectedMarker(obj);}}
+          onClick={() => {
+            setSelectedMarker(obj);
+            props.wsSend(JSON.stringify(routeRequest(obj.id))); //TODO: replace obj.id with line number
+            /*setRoute([
+              {lat: 59.8585, lng: 17.6389},
+              {lat: 59.9585, lng: 17.6389}
+            ]);*/
+          }}
         >
         </Marker>
       ))
     );
   }, [props.realtimeData]);
+
+  useEffect(() => {
+    setRoute(props.route);
+  }, [props.route]);
 
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
@@ -128,7 +170,10 @@ function Map(props) {
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
-        onClick={()=>{setSelectedMarker(null)}}
+        onClick={()=>{
+          setSelectedMarker(null);
+          setRoute([]);
+        }}
         onLoad={onMapLoad}
         onBoundsChanged={onBoundsChanged}
       >
@@ -160,6 +205,11 @@ function Map(props) {
             anchor: new window.google.maps.Point(15, 15),
             scaledSize: new window.google.maps.Size(30, 30),
           }}
+        />
+
+        <Polyline
+        path={currentRoute}
+        options={polyLineOptions}
         />
       </GoogleMap>
       <Fab
