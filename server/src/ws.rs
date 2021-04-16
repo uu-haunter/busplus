@@ -134,6 +134,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                 if let Ok(parsed_input) = parse_result {
                     // If it was successful, pattern match on what type of input was received.
                     match parsed_input {
+                        // TODO: Handle these.
+                        ClientInput::GetLineInformation(_) => (),
+                        ClientInput::GetRouteInformation(_) => (),
+
                         ClientInput::GeoPositionUpdate(inp) => {
                             // Send information to the lobby that the position should be updated.
                             self.lobby_addr.do_send(PositionUpdate {

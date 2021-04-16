@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", content = "payload")]
 pub enum ClientInput {
     #[serde(rename = "get-line-info")]
-    GetLineInformation(LineInformation)
+    GetLineInformation(LineInformation),
 
     #[serde(rename = "get-route-info")]
-    GetRouteInformation(LineInformation)
+    GetRouteInformation(LineInformation),
 
     #[serde(rename = "geo-position-update")]
     GeoPositionUpdate(GeoPosition),
