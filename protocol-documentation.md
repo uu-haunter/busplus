@@ -110,7 +110,7 @@ Get the information from a specific line.
         "stops": [
             {
                 "name": "Centralstationen",
-                "lines" : [5, 11, 14],
+                "lines" : ["5", "11", "14"],
                 "position": {
                     "type": "Point",
                     "coordinates": [56.133, 13.128],
