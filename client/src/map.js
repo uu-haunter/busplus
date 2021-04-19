@@ -22,7 +22,7 @@ function Map(props) {
   };
   const styles = require("./mapstyle.json");
   const [currentTheme, setCurrentTheme] = useState(styles.day);
-  const [realtimeData, setRealtimeData] = useState({timestamp: null, positions: []});
+  const [vehicleData, setVehicleData] = useState({timestamp: null, vehicles: {}});
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markers, setMarkers] = useState([]);
@@ -36,7 +36,7 @@ function Map(props) {
       let serverUpdateInterval = 5000;
 
       // The time that has passed since the last realtime update was received.
-      let dt = (new Date().getTime() - realtimeData.timestamp);
+      let dt = (new Date().getTime() - vehicleData.timestamp);
 
       // Dividing the time delta with the time interval of realtime updates
       // in order to get the fraction of the way that the vehicle should have
@@ -45,21 +45,20 @@ function Map(props) {
 
       if(fraction > 1) return;
 
-      setRealtimeData(
+      setVehicleData(
         {
-          timestamp: realtimeData.timestamp,
-          positions: Object.fromEntries(
-            Object.entries(realtimeData.positions).map(([vehicleId, position]) => {
-              //let copy = JSON.parse(JSON.stringify(position));
-
+          timestamp: vehicleData.timestamp,
+          vehicles: Object.fromEntries(
+            Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => {
+              
               // interpolate between the source and target positions using the calculated fraction
               // to get the new position.
-              let newLatLng = interpolate(position.source, position.target, fraction);
+              let newLatLng = interpolate(vehicle.sourcePosition, vehicle.targetPosition, fraction);
 
-              position.current.latitude = newLatLng.lat();
-              position.current.longitude = newLatLng.lng();
+              vehicle.currentPosition.latitude = newLatLng.lat();
+              vehicle.currentPosition.longitude = newLatLng.lng();
 
-              return [vehicleId, position];
+              return [vehicleId, vehicle];
             })
           )
         }
@@ -69,23 +68,23 @@ function Map(props) {
     return () => {
       clearInterval(updateInterval);
     };
-  }, [realtimeData, realtimeData.positions]);
+  }, [vehicleData, vehicleData.vehicles]);
 
   useEffect(() => {
-    setRealtimeData(
+    setVehicleData(
       {
         timestamp: new Date().getTime(),
-        positions: Object.fromEntries(
-          props.realtimeData.vehiclePositions.map(bus => {
-            let vehicleId = bus.descriptorId.toString();
-            let entry = realtimeData.positions[vehicleId];
+        vehicles: Object.fromEntries(
+          props.realtimeData.map(vehicle => {
+            let vehicleId = vehicle.descriptorId.toString();
+            let entry = vehicleData.vehicles[vehicleId];
 
             return [
               vehicleId,
               {
-                source: ( entry ? {...entry.target} : {...bus.position} ),
-                current: ( entry ? {...entry.target} : {...bus.position} ),
-                target: {...bus.position}
+                sourcePosition: ( entry ? {...entry.targetPosition} : {...vehicle.position} ),
+                currentPosition: ( entry ? {...entry.targetPosition} : {...vehicle.position} ),
+                targetPosition: {...vehicle.position}
               }
             ];
 
@@ -184,14 +183,14 @@ function Map(props) {
         onBoundsChanged={onBoundsChanged}
       >
         {
-          Object.entries(realtimeData.positions).map(([vehicleId, position]) => (
+          Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => (
             <Marker
               key={vehicleId}
               position={{
-                lat: position.current.latitude,
-                lng: position.current.longitude
+                lat: vehicle.currentPosition.latitude,
+                lng: vehicle.currentPosition.longitude
               }}
-              onClick={() => {setSelectedMarker({id: vehicleId, position: position.current});}}
+              onClick={() => {setSelectedMarker({id: vehicleId, position: vehicle.currentPosition});}}
             >
             </Marker>
           ))
