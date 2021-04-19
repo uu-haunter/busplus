@@ -23,14 +23,15 @@ pub enum ServerOutput {
 pub struct VehiclePositionsOutput {
     // Timestamp is POSIX TIME (seconds since 1970-01-01 00:00:00).
     pub timestamp: u64,
-    pub positions: Vec<Vehicle>,
+    pub vehicles: Vec<Vehicle>,
 }
 
 /// Represent a vehicle with an ID and a position.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vehicle {
-    pub id: String,
+    pub descriptor_id: String,
+    pub trip_id: Option<String>,
     pub position: Position,
 }
 

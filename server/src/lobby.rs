@@ -98,23 +98,38 @@ impl Lobby {
             let vehicle_positions = vehicle_data
                 .entity
                 .iter()
-                .map(|entity| Vehicle {
-                    id: entity.id.to_string(),
-                    position: entity
+                .map(|entity| {
+                    let vehicle = entity.vehicle.as_ref().unwrap();
+
+                    let descriptor_id = vehicle
                         .vehicle
                         .as_ref()
                         .unwrap()
-                        .position
+                        .id
                         .as_ref()
                         .unwrap()
-                        .clone(),
+                        .to_string();
+
+                    let trip_id = match vehicle.trip.as_ref() {
+                        Some(value) => match value.trip_id.as_ref() {
+                            Some(id) => Some(id.to_string()),
+                            None => None,
+                        },
+                        None => None,
+                    };
+
+                    Vehicle {
+                        descriptor_id: descriptor_id,
+                        trip_id: trip_id,
+                        position: vehicle.position.as_ref().unwrap().clone(),
+                    }
                 })
                 .collect();
 
             act.send_to_everyone(
                 &serde_json::to_string(&ServerOutput::VehiclePositions(VehiclePositionsOutput {
                     timestamp: Lobby::get_current_timestamp(),
-                    positions: vehicle_positions,
+                    vehicles: vehicle_positions,
                 }))
                 .unwrap(),
             );
