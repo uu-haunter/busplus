@@ -153,7 +153,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
 
             // If the message sent by the client is invalid (should rarely
             // happen in theory), we panic (exit the program).
-            Err(e) => panic!(e),
+            Err(e) => panic!("{}", e),
         }
     }
 }
