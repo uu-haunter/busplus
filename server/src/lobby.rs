@@ -74,24 +74,26 @@ impl Lobby {
     /// This method starts an interval which fetches new data from the Trafiklab API.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(API_FETCH_INTERVAL, |act, _| {
-            // TODO: Fetch data from the Trafiklab API (uncomment the lines below).
-            /*
-            if act.trafiklab.fetch_vehicle_positions().is_err() {
-                println!("Failed to retrieve data from Trafiklab Realtime API. API Down?");
+            // Fetch vehicle positions from Trafiklab's API.
+            match act.trafiklab.fetch_vehicle_positions() {
+                Err(reason) => {
+                    println!(
+                        "Failed to retrieve data from Trafiklab Realtime API. Reason: {}",
+                        reason
+                    );
 
-                // Important to return since we do not have any data to send to the clients.
-                return;
+                    // TODO: Send error message to clients indicating that the server cannot receive
+                    // data from the external API.
+                    return;
+                }
+                Ok(()) => (),
             }
-            */
 
             let vehicle_data = act.trafiklab.get_vehicle_positions().unwrap();
 
-            // TODO: Insert data into the database.
-
             // TODO: Instead of collecting all data in a big chunk like this,
             // the data should be tailored depending on what buses the user can see
-            // in regards to their "position". (Probably best done by querying MongoDB
-            // and sending the result from the query to the user).
+            // in regards to their "position".
 
             let vehicle_positions = vehicle_data
                 .entity
