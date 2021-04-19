@@ -60,7 +60,8 @@ Sent to reserve a seat on a bus with a specific id.
 Messages that are sent from the server to clients.
 
 ### Vehicle positions
-Sends the information of all vehicles set by `geo-position-update`
+Sends the information of all vehicles set by `geo-position-update`. 
+> Note that `trip_id` is not always defined so be sure to check if it is null or an actual value.
 ```json
 {
     "type": "vehicle-positions",
@@ -68,7 +69,8 @@ Sends the information of all vehicles set by `geo-position-update`
         "timestamp": 111111,
         "vehicles": [
             {
-                "id": 123456,
+                "descriptor_id": "123456",
+                "trip_id": "123456",
                 "line": 5,
                 "capacity": 80,
                 "passengers": 30,
