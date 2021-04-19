@@ -3,6 +3,7 @@ import Map from "./map.js";
 import SearchBar from "./SearchBar.js";
 import './App.css';
 
+
 class App extends React.Component {
 
   constructor() {

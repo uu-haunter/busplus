@@ -6,12 +6,15 @@ import {
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
-import { computeDistanceBetween } from 'spherical-geometry-js';
+import { computeDistanceBetween } from "spherical-geometry-js";
 import Fab from "@material-ui/core/Fab";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
 
+/*
+ * Function component for the Map of the application
+ */
 
 function Map(props) {
   const defaultLat = 59.8585;
@@ -21,25 +24,36 @@ function Map(props) {
     lng: defaultLng,
   };
   const styles = require("./mapstyle.json");
+
+  // State-variables
   const [currentTheme, setCurrentTheme] = useState(styles.day);
   const [realtimeData, setRealtimeData] = useState(props.realtimeData);
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markers, setMarkers] = useState([]);
 
+  // Fires a re-render to re-draw each bus on every 
+  // API-reponse recieved from the server
   useEffect(() => {
     setRealtimeData(props.realtimeData);
     setMarkers(
-      props.realtimeData.map(obj => (
+      props.realtimeData.map((bus) => (
         <Marker
-          key={obj.id}
+          key={bus.id}
           position={{
-            lat: obj.position.latitude,
-            lng: obj.position.longitude,
+            lat: bus.position.latitude,
+            lng: bus.position.longitude,
           }}
-          onClick={() => {setSelectedMarker(obj);}}
-        >
-        </Marker>
+          onClick={() => {
+            setSelectedMarker(bus);
+          }}
+          icon={{
+            url: "/bus.svg",
+            origin: new window.google.maps.Point(0, 0),
+            anchor: new window.google.maps.Point(15, 15),
+            scaledSize: new window.google.maps.Size(30, 30),
+          }}
+        ></Marker>
       ))
     );
   }, [props.realtimeData]);
@@ -79,22 +93,26 @@ function Map(props) {
 
     // return the distance along the earths surface
     return computeDistanceBetween(center, northEast);
-  }
+  };
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "",
+    // Reads the google-maps api_key from your locally created .env file
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
   });
 
+  // Container size for the GoogleMap component
   const mapContainerStyle = {
     height: "100vh",
     width: "100vw",
   };
 
+  // Default options of the GoogleMap component
   const options = {
     styles: currentTheme,
     disableDefaultUI: true,
   };
 
+  // Gets the users position using the browser location
   const updateLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(setCoordinates);
@@ -103,6 +121,7 @@ function Map(props) {
     }
   };
 
+  // Sets the center of the map to the user-position
   const setCoordinates = (position) => {
     setCurrentCenter({
       lat: position.coords.latitude,
@@ -110,6 +129,7 @@ function Map(props) {
     });
   };
 
+  // Changes between dark-theme and light-theme
   const changeTheme = () => {
     if (currentTheme === styles.day) {
       setCurrentTheme(styles.night);
@@ -128,7 +148,9 @@ function Map(props) {
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
-        onClick={()=>{setSelectedMarker(null)}}
+        onClick={() => {
+          setSelectedMarker(null);
+        }}
         onLoad={onMapLoad}
         onBoundsChanged={onBoundsChanged}
       >
@@ -170,7 +192,10 @@ function Map(props) {
       >
         <MyLocationIcon />
       </Fab>
-      <Fab color="primary" id="themeButton" onClick={changeTheme}>
+      <Fab 
+        color="primary" 
+        id="themeButton" 
+        onClick={changeTheme}>
         <Brightness3Icon />
       </Fab>
     </div>

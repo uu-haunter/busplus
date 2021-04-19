@@ -12,3 +12,7 @@ server/**/*.rs.bk
 
 # Hide the config file since it contains API keys and other sensitive data.
 config.yml
+
+# Hide googlemaps api-key
+
+client/.env
