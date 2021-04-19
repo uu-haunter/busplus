@@ -8,7 +8,7 @@ class App extends React.Component {
   constructor() {
     super();
     this.state = {
-      realtimeData: []
+      realtimeData: {timestamp: null, vehiclePositions: []}
     };
     this.ws = null;
     this.wsSend = this.wsSend.bind(this);
@@ -23,7 +23,7 @@ class App extends React.Component {
 
   handleReceivedMessage(message) {
     if(message.type === 'vehicle-positions') {
-      this.setState({realtimeData: message.payload.positions});
+      this.setState({realtimeData: {timestamp: message.payload.timestamp, vehiclePositions: message.payload.vehicles}});
     }
 
     // Handle other types of messages here
