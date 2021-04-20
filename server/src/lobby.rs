@@ -9,8 +9,9 @@ use uuid::Uuid;
 
 use crate::client::ClientData;
 use crate::config::{Config, CONFIG_FILE_PATH};
+use crate::database::DbConnection;
 use crate::gtfs::trafiklab::TrafiklabApi;
-use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
+use crate::messages::{Connect, Disconnect, PositionUpdate, RouteRequest, WsMessage};
 use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
 
 /// The interval in which data is fetched from the external Trafiklab API and
@@ -28,10 +29,13 @@ pub struct Lobby {
 
     /// Handle to communicate with Trafiklab's API.
     trafiklab: TrafiklabApi,
+
+    /// Handle to a connection to a MongoDB database.
+    db_connection: DbConnection,
 }
 
 impl Lobby {
-    pub fn new() -> Self {
+    pub fn new(db_connection: DbConnection) -> Self {
         let mut config_handler = Config::new();
 
         // If the load somehow fails the program will panic since it cannot operate
@@ -52,6 +56,7 @@ impl Lobby {
         let mut lobby = Lobby {
             clients: HashMap::new(),
             trafiklab: TrafiklabApi::new(realtime_key, static_key),
+            db_connection,
         };
 
         // Fetch initial realtime data.
@@ -210,5 +215,16 @@ impl Handler<PositionUpdate> for Lobby {
 
         // Update the client's position to the new position.
         client_data.update_position(msg.position);
+    }
+}
+
+impl Handler<RouteRequest> for Lobby {
+    type Result = ();
+
+    // This method is called whenever the Lobby receives a "RouteRequest" message.
+    fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) {
+        println!("updated position: {:#?}", msg.line_number);
+
+        // 1. Make a request to the database to figure out what "shape_id" the line has.
     }
 }
