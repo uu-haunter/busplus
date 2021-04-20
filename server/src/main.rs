@@ -4,6 +4,7 @@ mod database;
 mod endpoints;
 mod gtfs;
 mod lobby;
+mod util;
 mod messages;
 mod protocol;
 mod ws;

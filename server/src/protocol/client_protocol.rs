@@ -21,7 +21,7 @@ pub enum ClientInput {
 pub struct GeoPosition {
     // The maximum distance (in metres) from the clients position on their map that information
     // should be gathered from.
-    pub max_distance: i32,
+    pub max_distance: f32,
 
     // The client's position.
     pub position: GeoPositionPoint,
@@ -35,6 +35,6 @@ pub struct GeoPositionPoint {
     #[serde(rename = "type")]
     pub position_type: String,
 
-    // The vector usuaully only have two values [longitude, latitude].
+    // The vector usuaully only have two values [latitude, longitude].
     pub coordinates: Vec<f32>,
 }
