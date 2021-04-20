@@ -5,6 +5,9 @@ use std::path::Path;
 
 use yaml_rust::{Yaml, YamlLoader};
 
+/// The file path to the config file.
+pub const CONFIG_FILE_PATH: &str = "../config.yml";
+
 /// The YAML key where all trafiklab data is stored.
 /// Example:
 ///
@@ -14,6 +17,7 @@ use yaml_rust::{Yaml, YamlLoader};
 
 const TRAFIKLAB_YAML_KEY: &str = "trafiklab_api";
 const DATABASE_YAML_KEY: &str = "database";
+
 /// Stores the parsed contents of a YAML config file.
 pub struct Config {
     documents: Vec<Yaml>,

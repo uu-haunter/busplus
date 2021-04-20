@@ -8,6 +8,7 @@ use actix::AsyncContext;
 use uuid::Uuid;
 
 use crate::client::ClientData;
+use crate::config::{Config, CONFIG_FILE_PATH};
 use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
 use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
@@ -30,17 +31,34 @@ pub struct Lobby {
 }
 
 impl Lobby {
-    pub fn new(api_key: &str) -> Self {
+    pub fn new() -> Self {
+        let mut config_handler = Config::new();
+
+        // If the load somehow fails the program will panic since it cannot operate
+        // without the necessary data.
+        if let Err(reason) = config_handler.load_config(CONFIG_FILE_PATH) {
+            panic!("{}", reason);
+        }
+
+        // Try to get the API keys from the parsed config. This program is supposed to panic
+        // when one of these fail to retrieve a value, hence the unwrap call.
+        let realtime_key = config_handler
+            .get_trafiklab_value("realtime_key")
+            .expect("realtime_key is missing from trafiklab in  file.");
+        let static_key = config_handler
+            .get_trafiklab_value("static_key")
+            .expect("static_key is missing from trafiklab in config file.");
+
         let mut lobby = Lobby {
             clients: HashMap::new(),
-            trafiklab: TrafiklabApi::new(api_key),
+            trafiklab: TrafiklabApi::new(realtime_key, static_key),
         };
 
-        // Fetch initial data.
+        // Fetch initial realtime data.
         lobby
             .trafiklab
             .fetch_vehicle_positions()
-            .expect("Could not fetch data from Trafiklab.");
+            .expect("Could not fetch realtime data from Trafiklab.");
 
         lobby
     }
@@ -56,45 +74,62 @@ impl Lobby {
     /// This method starts an interval which fetches new data from the Trafiklab API.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(API_FETCH_INTERVAL, |act, _| {
-            // TODO: Fetch data from the Trafiklab API (uncomment the lines below).
-            /*
-            if act.trafiklab.fetch_vehicle_positions().is_err() {
-                println!("Failed to retrieve data from Trafiklab Realtime API. API Down?");
+            // Fetch vehicle positions from Trafiklab's API.
+            match act.trafiklab.fetch_vehicle_positions() {
+                Err(reason) => {
+                    println!(
+                        "Failed to retrieve data from Trafiklab Realtime API. Reason: {}",
+                        reason
+                    );
 
-                // Important to return since we do not have any data to send to the clients.
-                return;
+                    // TODO: Send error message to clients indicating that the server cannot receive
+                    // data from the external API.
+                    return;
+                }
+                Ok(()) => (),
             }
-            */
 
             let vehicle_data = act.trafiklab.get_vehicle_positions().unwrap();
 
-            // TODO: Insert data into the database.
-
             // TODO: Instead of collecting all data in a big chunk like this,
             // the data should be tailored depending on what buses the user can see
-            // in regards to their "position". (Probably best done by querying MongoDB
-            // and sending the result from the query to the user).
+            // in regards to their "position".
 
             let vehicle_positions = vehicle_data
                 .entity
                 .iter()
-                .map(|entity| Vehicle {
-                    id: entity.id.to_string(),
-                    position: entity
+                .map(|entity| {
+                    let vehicle = entity.vehicle.as_ref().unwrap();
+
+                    let descriptor_id = vehicle
                         .vehicle
                         .as_ref()
                         .unwrap()
-                        .position
+                        .id
                         .as_ref()
                         .unwrap()
-                        .clone(),
+                        .to_string();
+
+                    let trip_id = match vehicle.trip.as_ref() {
+                        Some(value) => match value.trip_id.as_ref() {
+                            Some(id) => Some(id.to_string()),
+                            None => None,
+                        },
+                        None => None,
+                    };
+
+                    Vehicle {
+                        descriptor_id: descriptor_id,
+                        trip_id: trip_id,
+                        position: vehicle.position.as_ref().unwrap().clone(),
+                    }
                 })
                 .collect();
 
             act.send_to_everyone(
                 &serde_json::to_string(&ServerOutput::VehiclePositions(VehiclePositionsOutput {
                     timestamp: Lobby::get_current_timestamp(),
-                    positions: vehicle_positions,
+                    vehicles: vehicle_positions,
                 }))
                 .unwrap(),
             );

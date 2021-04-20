@@ -24,7 +24,7 @@ class App extends React.Component {
 
   handleReceivedMessage(message) {
     if(message.type === 'vehicle-positions') {
-      this.setState({realtimeData: message.payload.positions});
+      this.setState({realtimeData: message.payload.vehicles});
     } else if (message.type === 'route-info') {
       this.setState({route: message.payload});
     }
