@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use actix::prelude::{Actor, Context, Handler, Recipient};
 use actix::AsyncContext;
+use mongodb::bson::doc;
 use uuid::Uuid;
 
 use crate::client::ClientData;
@@ -12,11 +13,13 @@ use crate::config::{Config, CONFIG_FILE_PATH};
 use crate::database::DbConnection;
 use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, PositionUpdate, RouteRequest, WsMessage};
-use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
+use crate::protocol::server_protocol::{
+    RouteInformationOutput, ServerOutput, Vehicle, VehiclePositionsOutput,
+};
 
 /// The interval in which data is fetched from the external Trafiklab API and
 /// echoed out to all connected users.
-const API_FETCH_INTERVAL: Duration = Duration::from_secs(5);
+const API_FETCH_INTERVAL: Duration = Duration::from_secs(1000);
 
 /// Type alias, which is essentially an address to an actor which you can
 /// send messages to.
@@ -223,8 +226,51 @@ impl Handler<RouteRequest> for Lobby {
 
     // This method is called whenever the Lobby receives a "RouteRequest" message.
     fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) {
-        println!("updated position: {:#?}", msg.line_number);
+        println!(
+            "Client '{}' requested line information for line '{}'",
+            msg.self_id, &msg.line_number
+        );
 
-        // 1. Make a request to the database to figure out what "shape_id" the line has.
+        // Make a request to the database to figure out what "route_id" the line has.
+        let route_id = match self
+            .db_connection
+            .get_route(doc! {"route_short_name": &msg.line_number})
+        {
+            Ok(route) => route.route_id,
+            Err(()) => {
+                // TODO: Handle error by sending an error message to the client.
+                return;
+            }
+        };
+
+        // Make a request to the database to figure out what "shape_id" the route has.
+        let shape_id = match self.db_connection.get_trip(doc! {"route_id": &route_id}) {
+            Ok(trip) => trip.shape_id.to_string(),
+            Err(()) => {
+                // TODO: Handle error by sending an error message to the client.
+                return;
+            }
+        };
+
+        // Make a request to the database to get all "shapes" from the "shape_id".
+        let nodes = match self.db_connection.get_shapes(doc! {"shape_id": &shape_id}) {
+            Ok(nodes) => nodes,
+            Err(()) => {
+                // TODO: Handle error by sending an error message to the client.
+                return;
+            }
+        };
+
+        // Send all the shapes back to the client.
+        self.send_message(
+            &serde_json::to_string(&ServerOutput::RouteInformation(RouteInformationOutput {
+                timestamp: Lobby::get_current_timestamp(),
+                line: msg.line_number,
+                route_id: route_id,
+                route: nodes,
+            }))
+            .unwrap(),
+            &msg.self_id,
+        );
     }
 }
