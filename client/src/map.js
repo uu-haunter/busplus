@@ -6,7 +6,7 @@ import {
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
-import { computeDistanceBetween } from 'spherical-geometry-js';
+import { computeDistanceBetween, interpolate } from 'spherical-geometry-js';
 import Fab from "@material-ui/core/Fab";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
@@ -22,25 +22,75 @@ function Map(props) {
   };
   const styles = require("./mapstyle.json");
   const [currentTheme, setCurrentTheme] = useState(styles.day);
-  const [realtimeData, setRealtimeData] = useState(props.realtimeData);
+  const [vehicleData, setVehicleData] = useState({timestamp: null, vehicles: {}});
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markers, setMarkers] = useState([]);
 
   useEffect(() => {
-    setRealtimeData(props.realtimeData);
-    setMarkers(
-      props.realtimeData.map(obj => (
-        <Marker
-          key={obj.id}
-          position={{
-            lat: obj.position.latitude,
-            lng: obj.position.longitude,
-          }}
-          onClick={() => {setSelectedMarker(obj);}}
-        >
-        </Marker>
-      ))
+    const ms = 40; // milliseconds between position updates
+    const updateInterval = setInterval(() => {
+      // serverUpdateInterval is the time interval at which the client receives realtime updates.
+      // If this interval is changed on the server side, serverUpdateInterval has to be changed accordingly.
+      // TODO: calculate serverUpdateInterval instead of using a constant value.
+      let serverUpdateInterval = 5000;
+
+      // The time that has passed since the last realtime update was received.
+      let dt = (new Date().getTime() - vehicleData.timestamp);
+
+      // Dividing the time delta with the time interval of realtime updates
+      // in order to get the fraction of the way that the vehicle should have
+      // reached if it moves at a constant rate of speed.
+      let fraction = dt / serverUpdateInterval;
+
+      if(fraction > 1) return;
+
+      setVehicleData(
+        {
+          timestamp: vehicleData.timestamp,
+          vehicles: Object.fromEntries(
+            Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => {
+              
+              // interpolate between the source and target positions using the calculated fraction
+              // to get the new position.
+              let newLatLng = interpolate(vehicle.sourcePosition, vehicle.targetPosition, fraction);
+
+              vehicle.currentPosition.latitude = newLatLng.lat();
+              vehicle.currentPosition.longitude = newLatLng.lng();
+
+              return [vehicleId, vehicle];
+            })
+          )
+        }
+      );
+    }, ms);
+
+    return () => {
+      clearInterval(updateInterval);
+    };
+  }, [vehicleData, vehicleData.vehicles]);
+
+  useEffect(() => {
+    setVehicleData(
+      {
+        timestamp: new Date().getTime(),
+        vehicles: Object.fromEntries(
+          props.realtimeData.map(vehicle => {
+            let vehicleId = vehicle.descriptorId.toString();
+            let entry = vehicleData.vehicles[vehicleId];
+
+            return [
+              vehicleId,
+              {
+                sourcePosition: ( entry ? {...entry.targetPosition} : {...vehicle.position} ),
+                currentPosition: ( entry ? {...entry.targetPosition} : {...vehicle.position} ),
+                targetPosition: {...vehicle.position}
+              }
+            ];
+
+          })
+        )
+      }
     );
   }, [props.realtimeData]);
 
@@ -132,7 +182,20 @@ function Map(props) {
         onLoad={onMapLoad}
         onBoundsChanged={onBoundsChanged}
       >
-        {markers}
+        {
+          Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => (
+            <Marker
+              key={vehicleId}
+              position={{
+                lat: vehicle.currentPosition.latitude,
+                lng: vehicle.currentPosition.longitude
+              }}
+              onClick={() => {setSelectedMarker({id: vehicleId, position: vehicle.currentPosition});}}
+            >
+            </Marker>
+          ))
+
+        }
         {selectedMarker && (
           <InfoWindow
             position={{
