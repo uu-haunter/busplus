@@ -229,12 +229,7 @@ function Map(props) {
                 lng: vehicle.currentPosition.longitude
               }}
               onClick={() => {
-                setSelectedMarker({
-                  id: vehicleId, 
-                  position: {
-                    latitude: vehicle.currentPosition.latitude,
-                    longitude: vehicle.currentPosition.longitude
-                  }});
+                setSelectedMarker(vehicleId);
                 props.wsSend(JSON.stringify(routeRequest(vehicleId)));
               }}
               
