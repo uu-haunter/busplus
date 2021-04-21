@@ -35,14 +35,32 @@ pub struct Vehicle {
     pub position: Position,
 }
 
-/// Represent a list of vehicles.
+/// Represent a line.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Line {
     pub timestamp: String,
     pub line: String,
-    pub vehicles: i32,
+    pub vehicles: u32,
     pub stops: Vec<Stop>,
+}
+
+/// Represent a route.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Route {
+    pub timestamp: String,
+    pub line: String,
+    pub route_id: String,
+    pub route: Vec<Coordinate>,
+}
+
+/// Represent a coordinate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Coordinate {
+    pub lat: f32,
+    pub lng: f32,
 }
 
 // Represent a vehicle with an ID and a position.
@@ -50,6 +68,6 @@ pub struct Line {
 #[serde(rename_all = "camelCase")]
 pub struct Stop {
     pub id: String,
-    pub lines: Vec<i32>,
+    pub lines: Vec<String>,
     pub position: Position,
 }
