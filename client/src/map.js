@@ -13,22 +13,28 @@ import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
 
+/*
+ * Function component for the Map of the application
+ */
 
 function Map(props) {
+
   const defaultLat = 59.8585;
   const defaultLng = 17.6389;
   const defaultCenter = {
     lat: defaultLat,
     lng: defaultLng,
   };
+
+  // State-variables
   const styles = require("./mapstyle.json");
   const [currentTheme, setCurrentTheme] = useState(styles.day);
   const [vehicleData, setVehicleData] = useState({timestamp: null, vehicles: {}});
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
-  const [markers, setMarkers] = useState([]);
-  const [currentRoute, setRoute] = useState([]);
+  const [currentRoute, setRoute] = useState(null);
 
+  // Options that specify the route-drawing
   const polyLineOptions = {
     strokeColor: '#FF0000',
     strokeOpacity: 0.8,
@@ -40,15 +46,10 @@ function Map(props) {
     editable: false,
     visible: true,
     radius: 30000,
-    paths: [
-      {lat: 37.772, lng: -122.214},
-      {lat: 21.291, lng: -157.821},
-      {lat: -18.142, lng: 178.431},
-      {lat: -27.467, lng: 153.027}
-    ],
     zIndex: 1
   };
 
+  // Returns a route request message for a specific bus line
   const routeRequest = (lineNo) => {
     return {
         "type": "get-route-info",
@@ -58,6 +59,7 @@ function Map(props) {
     };
   };
 
+  // Hook used to animate buses smoother
   useEffect(() => {
     const ms = 40; // milliseconds between position updates
     const updateInterval = setInterval(() => {
@@ -101,6 +103,7 @@ function Map(props) {
     };
   }, [vehicleData, vehicleData.vehicles]);
 
+  
   useEffect(() => {
     setVehicleData(
       {
@@ -125,6 +128,7 @@ function Map(props) {
     );
   }, [props.realtimeData]);
 
+  // Hook used to modify the route-data
   useEffect(() => {
     setRoute(props.route);
   }, [props.route]);
@@ -166,20 +170,25 @@ function Map(props) {
     return computeDistanceBetween(center, northEast);
   }
 
+  
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyBQ6ZHHvQAdpb5ReXRdwmL0v6hiz5xgroQ",
+    // Reads the google-maps api_key from your locally created .env file
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY
   });
 
+  // Container size for the GoogleMap component
   const mapContainerStyle = {
     height: "100vh",
     width: "100vw",
   };
 
+  // Default options of the GoogleMap component
   const options = {
     styles: currentTheme,
     disableDefaultUI: true,
   };
 
+  // Gets the users position using the browser location
   const updateLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(setCoordinates);
@@ -188,13 +197,15 @@ function Map(props) {
     }
   };
 
+  // Sets the center of the map to the user-position
   const setCoordinates = (position) => {
     setCurrentCenter({
       lat: position.coords.latitude,
       lng: position.coords.longitude,
     });
   };
-
+  
+  // Changes between dark-theme and light-theme
   const changeTheme = () => {
     if (currentTheme === styles.day) {
       setCurrentTheme(styles.night);
@@ -230,7 +241,8 @@ function Map(props) {
               }}
               onClick={() => {
                 setSelectedMarker(vehicleId);
-                props.wsSend(JSON.stringify(routeRequest(vehicleId)));
+                // TODO: Change argument for routeRequest when we have line data 
+                props.wsSend(JSON.stringify(routeRequest("30")));
               }}
               
             >
@@ -267,10 +279,16 @@ function Map(props) {
           }}
         />
 
-        <Polyline
-        path={currentRoute}
+        {currentRoute && (<Polyline
+        path={currentRoute.map(obj=>{
+          return ({
+            // TODO: Message should send coords in number format instead of string
+            lat: parseFloat(obj.lat),
+            lng: parseFloat(obj.lng)
+          })
+        })}
         options={polyLineOptions}
-        />
+        />)}
       </GoogleMap>
       <Fab
         id="locationButton"
