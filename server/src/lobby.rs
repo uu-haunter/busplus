@@ -125,8 +125,7 @@ impl Lobby {
                     }
                 })
                 .collect();
-            act.send_filtered_positions(vehicle_positions); 
-
+            act.send_filtered_positions(vehicle_positions);
         });
     }
 }
@@ -168,20 +167,27 @@ impl Actor for Lobby {
 
 impl Lobby {
     fn send_filtered_positions(&self, vhcs: Vec<Vehicle>) {
-        self.clients
-            .keys()
-            .for_each(|client_id| { 
-                if let Some(client) = self.clients.get(client_id) {
-                    if let Some(client_pos) = &client.position {
-                        let filtered_vhcs = vhcs.clone().into_iter().filter(|vhc| filter_position(client_pos, vhc)).collect::<Vec<Vehicle>>();
-                        self.send_message(
-                        &serde_json::to_string(&ServerOutput::VehiclePositions(VehiclePositionsOutput {
-                            timestamp: Lobby::get_current_timestamp(),
-                            vehicles: filtered_vhcs,
-                        })).unwrap(), client_id);
-                    }
+        self.clients.keys().for_each(|client_id| {
+            if let Some(client) = self.clients.get(client_id) {
+                if let Some(client_pos) = &client.position {
+                    let filtered_vhcs = vhcs
+                        .clone()
+                        .into_iter()
+                        .filter(|vhc| filter_position(client_pos, vhc))
+                        .collect::<Vec<Vehicle>>();
+                    self.send_message(
+                        &serde_json::to_string(&ServerOutput::VehiclePositions(
+                            VehiclePositionsOutput {
+                                timestamp: Lobby::get_current_timestamp(),
+                                vehicles: filtered_vhcs,
+                            },
+                        ))
+                        .unwrap(),
+                        client_id,
+                    );
                 }
-            });
+            }
+        });
     }
 }
 
