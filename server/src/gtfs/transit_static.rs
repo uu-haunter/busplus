@@ -41,20 +41,20 @@ pub struct Agency {
 pub struct Attributions {
     pub trip_id: String,
     pub organization_name: String,
-    pub is_operator: u8,
+    pub is_operator: i32,
 }
 
 /// Represents a calendar from Trafiklab's Static API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Calendar {
-    pub service_id: u8,
-    pub monday: u8,
-    pub tuesday: u8,
-    pub wednesday: u8,
-    pub thursday: u8,
-    pub friday: u8,
-    pub saturday: u8,
-    pub sunday: u8,
+    pub service_id: i32,
+    pub monday: i32,
+    pub tuesday: i32,
+    pub wednesday: i32,
+    pub thursday: i32,
+    pub friday: i32,
+    pub saturday: i32,
+    pub sunday: i32,
     pub start_date: String,
     pub end_date: String,
 }
@@ -64,7 +64,7 @@ pub struct Calendar {
 pub struct CalendarDates {
     pub service_id: String,
     pub date: String,
-    pub exception_type: u8,
+    pub exception_type: i32,
 }
 
 /// Represents feed information from Trafiklab's Static API.
@@ -89,7 +89,7 @@ pub struct Route {
     pub route_short_name: String,
     pub route_long_name: Option<String>,
 
-    pub route_type: u16,
+    pub route_type: String,
 
     /// Example: "Stadsbuss", "Regionbuss", "Sjukresebuss" etc.
     pub route_desc: Option<String>,
@@ -101,8 +101,8 @@ pub struct Shape {
     pub shape_id: String,
     pub shape_pt_lat: String,
     pub shape_pt_lon: String,
-    pub shape_pt_sequence: u32,
-    pub shape_dist_traveled: Option<f64>,
+    pub shape_pt_sequence: String,
+    pub shape_dist_traveled: Option<String>,
 }
 
 /// Represents a stop time from Trafiklab's Static API.
@@ -112,12 +112,12 @@ pub struct StopTime {
     pub arrival_time: String,
     pub departure_time: String,
     pub stop_id: String,
-    pub stop_sequence: u32,
+    pub stop_sequence: i32,
     pub stop_headsign: String,
-    pub pickup_type: u8,
-    pub drop_off_type: u8,
+    pub pickup_type: i32,
+    pub drop_off_type: i32,
     pub shape_dist_traveled: Option<f64>,
-    pub timepoint: u8,
+    pub timepoint: i32,
 }
 
 /// Represents a stop from Trafiklab's Static API.
@@ -127,7 +127,7 @@ pub struct Stop {
     pub stop_name: String,
     pub stop_lat: String,
     pub stop_lon: String,
-    pub location_type: u8,
+    pub location_type: i32,
     pub parent_station: Option<String>,
     pub platform_code: Option<String>,
 }
@@ -137,7 +137,7 @@ pub struct Stop {
 pub struct Transfer {
     pub from_stop_id: String,
     pub to_stop_id: String,
-    pub transfer_type: u8,
+    pub transfer_type: i32,
     pub min_transfer_time: Option<String>,
     pub from_trip_id: String,
     pub to_trip_id: String,
@@ -147,9 +147,9 @@ pub struct Transfer {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Trip {
     pub route_id: String,
-    pub service_id: u8,
+    pub service_id: String,
     pub trip_id: String,
     pub trip_headsign: Option<String>,
-    pub direction_id: u8,
-    pub shape_id: u8,
+    pub direction_id: String,
+    pub shape_id: String,
 }

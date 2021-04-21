@@ -46,7 +46,6 @@ Sent to get information about a specific line.
 
 ### Get route information
 Sent to get information about a specific route.
-> Not implemented
 ```json
 {
     "type": "get-route-info",
@@ -126,7 +125,6 @@ Get the information from a specific line.
 
 ### Route information
 Get the coordinates for a specific route.
->  Not implemented
 ```json
 {
     "type": "route-info",
