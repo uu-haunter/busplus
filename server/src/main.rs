@@ -13,8 +13,7 @@ use actix::Actor;
 use actix_web::{App, HttpServer};
 
 use crate::config::{Config, CONFIG_FILE_PATH};
-use crate::database::init_connection;
-use crate::database::Connection;
+use crate::database::init_db_connection;
 use crate::endpoints::ws_endpoint as ws_endpoint_route;
 use crate::lobby::Lobby;
 
@@ -30,10 +29,16 @@ async fn main() -> std::io::Result<()> {
 
     // Get Database URI from config
     let db_uri = config_handler.get_database_value("uri").unwrap();
-    let conn = init_connection(db_uri);
+
+    // Try to get a handle with a connection to the database, otherwise exit
+    let connection = init_db_connection(db_uri).unwrap_or_else(|reason| {
+        println!("Could not connect to database. Reason: {}", reason);
+
+        std::process::exit(1);
+    });
 
     // Create the common/shared state.
-    let lobby = Lobby::new().start();
+    let lobby = Lobby::new(connection).start();
 
     HttpServer::new(move || App::new().service(ws_endpoint_route).data(lobby.clone()))
         // The "0.0.0.0" means that the server accepts requests from any host (127.0.0.1, 192.168.x.x, etc..)

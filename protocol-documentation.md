@@ -39,7 +39,18 @@ Sent to get information about a specific line.
 {
     "type": "get-line-info",
     "payload": {
-        "line": 5
+        "line": "5"
+    }
+}
+```
+
+### Get route information
+Sent to get information about a specific route.
+```json
+{
+    "type": "get-route-info",
+    "payload": {
+        "line": "5"
     }
 }
 ```
@@ -51,7 +62,7 @@ Sent to reserve a seat on a bus with a specific id.
 {
     "type": "reserve-seat",
     "payload": {
-        "id": 123456
+        "id": "123456"
     }
 }
 ```
@@ -92,23 +103,42 @@ Get the information from a specific line.
 >  Not implemented
 ```json
 {
-	"type": "line-info",
-	"payload": {
-		"timestamp": 111111,
-		"line" : 5,
-    	"vehicles": 10,
+    "type": "line-info",
+    "payload": {
+        "timestamp": 111111,
+        "line" : "5",
+        "vehicles": 10,
         "stops": [
-			{
-				"name": "Centralstationen",
-                "lines" : [5, 11, 14],
-				"position": {
+            {
+                "name": "Centralstationen",
+                "lines" : ["5", "11", "14"],
+                "position": {
                     "type": "Point",
                     "coordinates": [56.133, 13.128],
                 }
-			},
-			...
-		]
-	}
+            },
+            ...
+        ]
+    }
+}
+```
+
+### Route information
+Get the coordinates for a specific route.
+```json
+{
+    "type": "route-info",
+    "payload": {
+        "timestamp": 111111,
+        "line" : "5",
+        "routeId": "123456",
+        "route": [
+            {"lat": 37.772, "lng": -122.214},
+            {"lat": 21.291, "lng": -157.821},
+            {"lat": -18.142, "lng": 178.431},
+            {"lat": -27.467, "lng": 153.027}
+        ]
+    }
 }
 ```
 
@@ -117,14 +147,14 @@ Get the information from a specific stop.
 >  Not implemented
 ```json
 {
-	"type": "stop-info",
-	"payload": {
+    "type": "stop-info",
+    "payload": {
         "name": "Centralstationen",
-		"lines" : [5, 11, 14],
+        "lines" : ["5", "11", "14"],
         "position": {
             "type": "Point",
             "coordinates": [56.133, 13.128],
         } 
-	}
+    }
 }
 ```
