@@ -7,7 +7,7 @@ use actix_web_actors::ws;
 use uuid::Uuid;
 
 use crate::lobby::Lobby;
-use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
+use crate::messages::{Connect, Disconnect, PositionUpdate, RouteRequest, WsMessage};
 use crate::protocol::client_protocol::ClientInput;
 
 /// How often heartbeat pings are sent.
@@ -136,8 +136,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                     match parsed_input {
                         // TODO: Handle these.
                         ClientInput::GetLineInformation(_) => (),
-                        ClientInput::GetRouteInformation(_) => (),
-
+                        ClientInput::GetRouteInformation(inp) => {
+                            self.lobby_addr.do_send(RouteRequest {
+                                self_id: self.id,
+                                line_number: inp.line,
+                            });
+                        }
                         ClientInput::GeoPositionUpdate(inp) => {
                             // Send information to the lobby that the position should be updated.
                             self.lobby_addr.do_send(PositionUpdate {
