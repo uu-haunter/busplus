@@ -8,6 +8,9 @@ trafiklab_api:
   realtime_key: <very secret api key>
   static_key: <very secret api key>
 
+  # How often vehicle positions should be fetched from the external API and sent to all connected clients
+  echo_interval: <interval in seconds as a f64 (like 2.0 or 0.667 for example)>
+
 database:
   uri: <very secret connection uri>
 ```
