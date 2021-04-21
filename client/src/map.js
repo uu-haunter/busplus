@@ -167,7 +167,7 @@ function Map(props) {
   }
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "",
+    googleMapsApiKey: "AIzaSyBQ6ZHHvQAdpb5ReXRdwmL0v6hiz5xgroQ",
   });
 
   const mapContainerStyle = {
