@@ -183,16 +183,18 @@ impl Lobby {
                         .into_iter()
                         .filter(|vhc| filter_vehicle_position(client_pos, vhc))
                         .collect::<Vec<Vehicle>>();
-                    self.send_message(
-                        &serde_json::to_string(&ServerOutput::VehiclePositions(
-                            VehiclePositionsOutput {
-                                timestamp: Lobby::get_current_timestamp(),
-                                vehicles: filtered_vhcs,
-                            },
-                        ))
-                        .unwrap(),
-                        client_id,
-                    );
+                    if filtered_vhcs.len() > 0 {
+                        self.send_message(
+                            &serde_json::to_string(&ServerOutput::VehiclePositions(
+                                VehiclePositionsOutput {
+                                    timestamp: Lobby::get_current_timestamp(),
+                                    vehicles: filtered_vhcs,
+                                },
+                            ))
+                            .unwrap(),
+                            client_id,
+                        );
+                    }
                 }
             }
         });
