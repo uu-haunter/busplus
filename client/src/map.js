@@ -50,7 +50,7 @@ function Map(props) {
           timestamp: vehicleData.timestamp,
           vehicles: Object.fromEntries(
             Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => {
-              
+
               // interpolate between the source and target positions using the calculated fraction
               // to get the new position.
               let newLatLng = interpolate(vehicle.sourcePosition, vehicle.targetPosition, fraction);
@@ -190,7 +190,7 @@ function Map(props) {
                 lat: vehicle.currentPosition.latitude,
                 lng: vehicle.currentPosition.longitude
               }}
-              onClick={() => {setSelectedMarker({id: vehicleId, position: vehicle.currentPosition});}}
+              onClick={() => {setSelectedMarker(vehicleId);}}
             >
             </Marker>
           ))
@@ -199,15 +199,15 @@ function Map(props) {
         {selectedMarker && (
           <InfoWindow
             position={{
-              lat: selectedMarker.position.latitude,
-              lng: selectedMarker.position.longitude,
+              lat: vehicleData.vehicles[selectedMarker].currentPosition.latitude,
+              lng: vehicleData.vehicles[selectedMarker].currentPosition.longitude,
             }}
             onCloseClick={() => {
               setSelectedMarker(null);
             }}
           >
             <div>
-              <p>{`Bus ${selectedMarker.id} \n Passengers ${selectedMarker.passengers} / ${selectedMarker.capacity}`}</p>
+              <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
             </div>
           </InfoWindow>
         )}

@@ -32,3 +32,11 @@ pub struct PositionUpdate {
     pub self_id: Uuid,
     pub position: GeoPosition,
 }
+
+/// WebsocketClient sends this to request information about a line from the lobby.
+#[derive(Debug, Message)]
+#[rtype(result = "()")]
+pub struct RouteRequest {
+    pub self_id: Uuid,
+    pub line_number: String,
+}

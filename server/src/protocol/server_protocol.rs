@@ -15,6 +15,9 @@ use crate::gtfs::transit_realtime::Position;
 pub enum ServerOutput {
     #[serde(rename = "vehicle-positions")]
     VehiclePositions(VehiclePositionsOutput),
+
+    #[serde(rename = "route-info")]
+    RouteInformation(RouteInformationOutput),
 }
 
 /// Represent a list of vehicles.
@@ -35,14 +38,41 @@ pub struct Vehicle {
     pub position: Position,
 }
 
-/// Represent a list of vehicles.
+/// Represent a list of lines.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteInformationOutput {
+    pub timestamp: u64,
+    pub line: String,
+    pub route_id: String,
+    pub route: Vec<RouteNode>,
+}
+
+/// Represent a route node.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteNode {
+    pub lat: String,
+    pub lng: String,
+    pub sequence: i32,
+}
+
+/// Represent a line.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Line {
     pub timestamp: String,
     pub line: String,
-    pub vehicles: i32,
+    pub vehicles: u32,
     pub stops: Vec<Stop>,
+}
+
+/// Represent a coordinate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Coordinate {
+    pub lat: f32,
+    pub lng: f32,
 }
 
 // Represent a vehicle with an ID and a position.
@@ -50,6 +80,6 @@ pub struct Line {
 #[serde(rename_all = "camelCase")]
 pub struct Stop {
     pub id: String,
-    pub lines: Vec<i32>,
+    pub lines: Vec<String>,
     pub position: Position,
 }
