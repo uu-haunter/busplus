@@ -13,7 +13,7 @@ use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{Connect, Disconnect, PositionUpdate, WsMessage};
 use crate::protocol::server_protocol::{ServerOutput, Vehicle, VehiclePositionsOutput};
 
-use crate::util::filter_position;
+use crate::util::filter_vehicle_position;
 /// The interval in which data is fetched from the external Trafiklab API and
 /// echoed out to all connected users.
 const API_FETCH_INTERVAL: Duration = Duration::from_secs(5);
@@ -173,7 +173,7 @@ impl Lobby {
                     let filtered_vhcs = vhcs
                         .clone()
                         .into_iter()
-                        .filter(|vhc| filter_position(client_pos, vhc))
+                        .filter(|vhc| filter_vehicle_position(client_pos, vhc))
                         .collect::<Vec<Vehicle>>();
                     self.send_message(
                         &serde_json::to_string(&ServerOutput::VehiclePositions(
