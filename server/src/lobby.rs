@@ -225,7 +225,7 @@ impl Handler<PositionUpdate> for Lobby {
 }
 
 impl Handler<RouteRequest> for Lobby {
-    type Result = ResponseActFuture<Self, Result<(), ()>>;
+    type Result = ResponseActFuture<Self, ()>;
 
     // This method is called whenever the Lobby receives a "RouteRequest" message.
     fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) -> Self::Result {
@@ -234,13 +234,13 @@ impl Handler<RouteRequest> for Lobby {
             msg.self_id, &msg.line_number
         );
 
-        // Important to clone these values so they will be accessible inside the async method(s).
+        // Important to clone these values so they will be accessible inside the async block in the
+        // pinned box.
         let line_number = msg.line_number.clone();
         let client_id = msg.self_id.clone();
 
-        // Note that we also clone (not a reference) a handle to the database connection since
-        // self" cannot be accessed inside tha async block in the pinned box. "self" can however
-        // be accessed inside the "map" call as "act".
+        // Note that we also clone a handle to the database connection since "self" cannot be accessed
+        // inside the async block. "self" can however be accessed inside the "map" call as "act".
         let conn = self.db_connection.clone();
 
         Box::pin(
@@ -282,13 +282,12 @@ impl Handler<RouteRequest> for Lobby {
             }
             // Converts future to ActorFuture
             .into_actor(self)
-            // message is the value that is returned from the async block above, act is a mutable refernce to "self" (the lobby)
+            // message is the value that is returned from the async block above, act is a mutable reference to "self" (the lobby)
             // and ctx is a mutable referenced context with an actor handle to the lobby.
             .map(move |message, act, _ctx| {
                 // Send the data back to the client.
                 // We don't need to check if the client is still connected here since "send_message" checks this.
                 act.send_message(&message, &client_id);
-                Ok(())
             }),
         )
     }

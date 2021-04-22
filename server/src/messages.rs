@@ -35,7 +35,7 @@ pub struct PositionUpdate {
 
 /// WebsocketClient sends this to request information about a line from the lobby.
 #[derive(Debug, Message)]
-#[rtype(result = "Result<(), ()>")]
+#[rtype(result = "()")]
 pub struct RouteRequest {
     pub self_id: Uuid,
     pub line_number: String,
