@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
     let db_uri = config_handler.get_database_value("uri").unwrap();
 
     // Try to get a handle with a connection to the database, otherwise exit
-    let connection = init_db_connection(db_uri).unwrap_or_else(|reason| {
+    let connection = init_db_connection(db_uri).await.unwrap_or_else(|reason| {
         println!("Could not connect to database. Reason: {}", reason);
 
         std::process::exit(1);

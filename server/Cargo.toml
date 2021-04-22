@@ -20,8 +20,5 @@ yaml-rust = "0.4.5"
 tempdir = "0.3"
 zip = "0.5.11"
 csv = "1.1"
-
-[dependencies.mongodb]
-version = "2.0.0-alpha.1"
-default-features = false
-features = ["sync"]
+tokio = "0.2.25"
+mongodb = "1.2.0"
