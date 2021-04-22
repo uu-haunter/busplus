@@ -19,7 +19,7 @@ use crate::protocol::server_protocol::{
 
 /// The interval in which data is fetched from the external Trafiklab API and
 /// echoed out to all connected users.
-const API_FETCH_INTERVAL: Duration = Duration::from_secs(1000);
+const API_FETCH_INTERVAL: Duration = Duration::from_secs(5);
 
 /// Type alias, which is essentially an address to an actor which you can
 /// send messages to.
