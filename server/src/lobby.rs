@@ -3,7 +3,9 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use actix::prelude::{Actor, Context, Handler, Recipient};
+use actix::prelude::{
+    Actor, ActorFuture, Context, Handler, Recipient, ResponseActFuture, WrapFuture,
+};
 use actix::AsyncContext;
 use mongodb::bson::doc;
 use uuid::Uuid;
@@ -165,6 +167,7 @@ impl Lobby {
     }
 
     /// Sends a message to every connected client stored in self.clients.
+    #[allow(dead_code)]
     fn send_to_everyone_except_self(&self, message: &str, self_id: &Uuid) {
         self.clients
             .keys()
@@ -244,7 +247,7 @@ impl Handler<PositionUpdate> for Lobby {
     fn handle(&mut self, msg: PositionUpdate, _: &mut Context<Self>) {
         let client_data = self.clients.get_mut(&msg.self_id).unwrap();
 
-        println!("updated position: {:#?}", msg.position);
+        println!("Updated position for client with id '{}'", &msg.self_id);
 
         // Update the client's position to the new position.
         client_data.update_position(msg.position);
@@ -252,55 +255,70 @@ impl Handler<PositionUpdate> for Lobby {
 }
 
 impl Handler<RouteRequest> for Lobby {
-    type Result = ();
+    type Result = ResponseActFuture<Self, ()>;
 
     // This method is called whenever the Lobby receives a "RouteRequest" message.
-    fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) {
+    fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) -> Self::Result {
         println!(
-            "Client '{}' requested line information for line '{}'",
+            "Client with id '{}' requested line information for line '{}'",
             msg.self_id, &msg.line_number
         );
 
-        // Make a request to the database to figure out what "route_id" the line has.
-        let route_id = match self
-            .db_connection
-            .get_route(doc! {"route_short_name": &msg.line_number})
-        {
-            Ok(route) => route.route_id,
-            Err(()) => {
-                // TODO: Handle error by sending an error message to the client.
-                return;
-            }
-        };
+        // Important to clone these values so they will be accessible inside the async block in the
+        // pinned box.
+        let line_number = msg.line_number.clone();
+        let client_id = msg.self_id.clone();
 
-        // Make a request to the database to figure out what "shape_id" the route has.
-        let shape_id = match self.db_connection.get_trip(doc! {"route_id": &route_id}) {
-            Ok(trip) => trip.shape_id.to_string(),
-            Err(()) => {
-                // TODO: Handle error by sending an error message to the client.
-                return;
-            }
-        };
+        // Note that we also clone a handle to the database connection since "self" cannot be accessed
+        // inside the async block. "self" can however be accessed inside the "map" call as "act".
+        let conn = self.db_connection.clone();
 
-        // Make a request to the database to get all "shapes" from the "shape_id".
-        let nodes = match self.db_connection.get_shapes(doc! {"shape_id": &shape_id}) {
-            Ok(nodes) => nodes,
-            Err(()) => {
-                // TODO: Handle error by sending an error message to the client.
-                return;
-            }
-        };
+        Box::pin(
+            async move {
+                let route_id = match conn.get_route(doc! {"route_short_name": line_number}).await {
+                    Ok(route) => route.route_id,
+                    Err(_) => {
+                        // TODO: Handle error by creating error message to be sent back to the client.
+                        return String::from("");
+                    }
+                };
 
-        // Send all the shapes back to the client.
-        self.send_message(
-            &serde_json::to_string(&ServerOutput::RouteInformation(RouteInformationOutput {
-                timestamp: Lobby::get_current_timestamp(),
-                line: msg.line_number,
-                route_id: route_id,
-                route: nodes,
-            }))
-            .unwrap(),
-            &msg.self_id,
-        );
+                // Make a request to the database to figure out what "shape_id" the route has.
+                let shape_id = match conn.get_trip(doc! {"route_id": &route_id}).await {
+                    Ok(trip) => trip.shape_id.to_string(),
+                    Err(_) => {
+                        // TODO: Handle error by creating error message to be sent back to the client.
+                        return String::from("");
+                    }
+                };
+
+                // Make a request to the database to get all "shapes" from the "shape_id".
+                let nodes = match conn.get_shapes(doc! {"shape_id": &shape_id}).await {
+                    Ok(nodes) => nodes,
+                    Err(_) => {
+                        // TODO: Handle error by creating error message to be sent back to the client.
+                        return String::from("");
+                    }
+                };
+
+                // Create the serialized json message that will be sent back to the client.
+                serde_json::to_string(&ServerOutput::RouteInformation(RouteInformationOutput {
+                    timestamp: Lobby::get_current_timestamp(),
+                    line: msg.line_number,
+                    route_id: route_id,
+                    route: nodes,
+                }))
+                .unwrap()
+            }
+            // Converts future to ActorFuture
+            .into_actor(self)
+            // message is the value that is returned from the async block above, act is a mutable reference to "self" (the lobby)
+            // and ctx is a mutable referenced context with an actor handle to the lobby.
+            .map(move |message, act, _ctx| {
+                // Send the data back to the client.
+                // We don't need to check if the client is still connected here since "send_message" checks this.
+                act.send_message(&message, &client_id);
+            }),
+        )
     }
 }

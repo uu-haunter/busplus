@@ -88,11 +88,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
     // This method handles any incoming message by any client.
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         // Prints what kind of message is received to the terminal if it's not a ping or pong.
+        // Uncomment these lines to debug messages.
+        /*
         match msg {
             Ok(ws::Message::Pong(_)) => (),
             Ok(ws::Message::Ping(_)) => (),
             _ => println!("WS: {:?}", msg),
         }
+        */
 
         // Figure out what kind of message we've received.
         match msg {
