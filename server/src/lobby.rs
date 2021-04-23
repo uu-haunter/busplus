@@ -19,6 +19,7 @@ use crate::protocol::server_protocol::{
     RouteInformationOutput, ServerOutput, Vehicle, VehiclePositionsOutput,
 };
 
+use crate::util::filter_vehicle_position;
 /// The interval in which data is fetched from the external Trafiklab API and
 /// echoed out to all connected users.
 const API_FETCH_INTERVAL: Duration = Duration::from_secs(5);
@@ -105,7 +106,7 @@ impl Lobby {
             // the data should be tailored depending on what buses the user can see
             // in regards to their "position".
 
-            let vehicle_positions = vehicle_data
+            let mut vehicle_positions = vehicle_data
                 .entity
                 .iter()
                 .map(|entity| {
@@ -127,7 +128,6 @@ impl Lobby {
                         },
                         None => None,
                     };
-
                     Vehicle {
                         descriptor_id: descriptor_id,
                         trip_id: trip_id,
@@ -135,14 +135,7 @@ impl Lobby {
                     }
                 })
                 .collect();
-
-            act.send_to_everyone(
-                &serde_json::to_string(&ServerOutput::VehiclePositions(VehiclePositionsOutput {
-                    timestamp: Lobby::get_current_timestamp(),
-                    vehicles: vehicle_positions,
-                }))
-                .unwrap(),
-            );
+            act.send_filtered_positions(vehicle_positions);
         });
     }
 }
@@ -180,6 +173,34 @@ impl Actor for Lobby {
     // This method is when the lobby is started.
     fn started(&mut self, ctx: &mut Self::Context) {
         self.start_echo_positions_interval(ctx);
+    }
+}
+
+impl Lobby {
+    fn send_filtered_positions(&self, vhcs: Vec<Vehicle>) {
+        self.clients.keys().for_each(|client_id| {
+            if let Some(client) = self.clients.get(client_id) {
+                if let Some(client_pos) = &client.position {
+                    let filtered_vhcs = vhcs
+                        .clone()
+                        .into_iter()
+                        .filter(|vhc| filter_vehicle_position(client_pos, vhc))
+                        .collect::<Vec<Vehicle>>();
+                    if filtered_vhcs.len() > 0 {
+                        self.send_message(
+                            &serde_json::to_string(&ServerOutput::VehiclePositions(
+                                VehiclePositionsOutput {
+                                    timestamp: Lobby::get_current_timestamp(),
+                                    vehicles: filtered_vhcs,
+                                },
+                            ))
+                            .unwrap(),
+                            client_id,
+                        );
+                    }
+                }
+            }
+        });
     }
 }
 

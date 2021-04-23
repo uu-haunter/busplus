@@ -6,6 +6,7 @@ mod gtfs;
 mod lobby;
 mod messages;
 mod protocol;
+mod util;
 mod ws;
 
 use actix::Actor;
