@@ -18,6 +18,7 @@ use crate::protocol::server_protocol::{
 };
 
 use crate::util::filter_vehicle_position;
+
 /// The interval in which data is fetched from the external Trafiklab API and
 /// echoed out to all connected users.
 const API_FETCH_INTERVAL: Duration = Duration::from_secs(5);
@@ -33,6 +34,10 @@ pub struct Lobby {
 
     /// Handle to communicate with Trafiklab's API.
     trafiklab: TrafiklabApi,
+
+    /// The interval in which data is fetched from the external Trafiklab API and
+    /// echoed out to all connected clients.
+    echo_positions_interval: Duration,
 
     /// Handle to a connection to a MongoDB database.
     db_connection: DbConnection,
@@ -51,15 +56,19 @@ impl Lobby {
         // Try to get the API keys from the parsed config. This program is supposed to panic
         // when one of these fail to retrieve a value, hence the unwrap call.
         let realtime_key = config_handler
-            .get_trafiklab_value("realtime_key")
-            .expect("realtime_key is missing from trafiklab in  file.");
+            .get_trafiklab_value_str("realtime_key")
+            .expect("realtime_key is missing from config file");
         let static_key = config_handler
-            .get_trafiklab_value("static_key")
-            .expect("static_key is missing from trafiklab in config file.");
+            .get_trafiklab_value_str("static_key")
+            .expect("static_key is missing from config file");
+        let echo_interval: f64 = config_handler
+            .get_trafiklab_value_f64("echo_interval")
+            .expect("echo_interval is missing or not number in config file");
 
         let mut lobby = Lobby {
             clients: HashMap::new(),
             trafiklab: TrafiklabApi::new(realtime_key, static_key),
+            echo_positions_interval: Duration::from_secs_f64(echo_interval),
             db_connection,
         };
 
@@ -82,7 +91,7 @@ impl Lobby {
 
     /// This method starts an interval which fetches new data from the Trafiklab API.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
-        ctx.run_interval(API_FETCH_INTERVAL, |act, _| {
+        ctx.run_interval(self.echo_positions_interval, |act, _| {
             // Fetch vehicle positions from Trafiklab's API.
             match act.trafiklab.fetch_vehicle_positions() {
                 Err(reason) => {

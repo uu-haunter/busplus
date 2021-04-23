@@ -54,25 +54,51 @@ impl Config {
 
         Ok(())
     }
-    /// Gets a key value from the config section in the config file.
-    pub fn get_config_value(&self, field: &str, key: &str) -> Option<&str> {
+
+    /// Returns a reference to the Yaml document that contains relevant data
+    fn get_config_docuemnt(&self) -> Option<&Yaml> {
         // If the documents vector is empty that means we haven't loaded in any config
         // file yet, so None is returned.
         if self.documents.is_empty() {
             return None;
         }
 
-        let document = &self.documents[0];
+        Some(&self.documents[0])
+    }
+
+    /// Gets a key value from the config section in the config file as a `&str`
+    pub fn get_config_value_str(&self, field: &str, key: &str) -> Option<&str> {
+        let document = match self.get_config_docuemnt() {
+            Some(doc) => doc,
+            None => return None,
+        };
 
         document[field][key].as_str()
     }
 
-    pub fn get_trafiklab_value(&self, key: &str) -> Option<&str> {
-        self.get_config_value(TRAFIKLAB_YAML_KEY, key)
+    /// Gets a key value from the config section in the config file as a `f64`
+    pub fn get_config_value_f64(&self, field: &str, key: &str) -> Option<f64> {
+        let document = match self.get_config_docuemnt() {
+            Some(doc) => doc,
+            None => return None,
+        };
+
+        document[field][key].as_f64()
     }
 
+    /// Returns a value from the trafiklab section in the config file as a `f64`
+    pub fn get_trafiklab_value_f64(&self, key: &str) -> Option<f64> {
+        self.get_config_value_f64(TRAFIKLAB_YAML_KEY, key)
+    }
+
+    /// Returns a value from the trafiklab section in the config file as a `&str`
+    pub fn get_trafiklab_value_str(&self, key: &str) -> Option<&str> {
+        self.get_config_value_str(TRAFIKLAB_YAML_KEY, key)
+    }
+
+    /// Returns a value from the database section in the config file as a `&str`
     pub fn get_database_value(&self, key: &str) -> Option<&str> {
-        self.get_config_value(DATABASE_YAML_KEY, key)
+        self.get_config_value_str(DATABASE_YAML_KEY, key)
     }
 }
 
@@ -129,13 +155,13 @@ mod tests {
 
         // Make sure that some bad key returns None
         assert_eq!(
-            config_handler.get_trafiklab_value("bad_key").is_none(),
+            config_handler.get_trafiklab_value_str("bad_key").is_none(),
             true
         );
         assert_eq!(config_handler.get_database_value("bad_key").is_none(), true);
 
         let get_key_result_database = config_handler.get_database_value(TEST_DATABASE_KEY);
-        let get_key_result_trafik = config_handler.get_trafiklab_value(TEST_API_KEY);
+        let get_key_result_trafik = config_handler.get_trafiklab_value_str(TEST_API_KEY);
 
         // Make sure that a correct key is returned as Some and the correct value.
         assert_eq!(get_key_result_trafik.is_some(), true);
