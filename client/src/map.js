@@ -13,6 +13,16 @@ import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
 
+// Returns a route request message for a specific bus line
+export function routeRequest(lineNo) {
+  return {
+    type: "get-route-info",
+    payload: {
+      line: lineNo,
+    },
+  };
+};
+
 /*
  * Function component for the Map of the application
  */
@@ -51,15 +61,7 @@ function Map(props) {
     zIndex: 1,
   };
 
-  // Returns a route request message for a specific bus line
-  const routeRequest = (lineNo) => {
-    return {
-      type: "get-route-info",
-      payload: {
-        line: lineNo,
-      },
-    };
-  };
+  
 
   // Hook used to animate buses smoother
   useEffect(() => {
