@@ -146,7 +146,7 @@ function Map(props) {
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
     // TODO: uncomment this code once the server supports 'geo-position-update'
-    /*
+    
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
@@ -163,7 +163,7 @@ function Map(props) {
     };
 
     props.wsSend(JSON.stringify(message));
-    */
+    
   };
 
   // returns the radius of the maps bounding sphere in meters
@@ -283,11 +283,11 @@ function Map(props) {
             updateLocation();
           }}
           icon={{
-            url: "/personpin.svg",
+            url: "/circle.svg",
             origin: new window.google.maps.Point(0, 0),
             anchor: new window.google.maps.Point(15, 15),
             //Change Size to (150,150) when using pulsating circle icon
-            scaledSize: new window.google.maps.Size(30, 30),
+            scaledSize: new window.google.maps.Size(150, 150),
           }}
         />
 
