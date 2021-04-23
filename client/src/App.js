@@ -8,7 +8,8 @@ class App extends React.Component {
   constructor() {
     super();
     this.state = {
-      realtimeData: []
+      realtimeData: [],
+      route: []
     };
     this.ws = null;
     this.wsSend = this.wsSend.bind(this);
@@ -24,6 +25,9 @@ class App extends React.Component {
   handleReceivedMessage(message) {
     if(message.type === 'vehicle-positions') {
       this.setState({realtimeData: message.payload.vehicles});
+    } else if (message.type === 'route-info') {
+      console.log(message);
+      this.setState({route: message.payload.route});
     }
 
     // Handle other types of messages here
@@ -59,6 +63,7 @@ class App extends React.Component {
           <Map
             wsSend={this.wsSend}
             realtimeData={this.state.realtimeData}
+            route={this.state.route}
           />
           <SearchBar/>
         </div>

@@ -12,3 +12,6 @@ server/**/*.rs.bk
 
 # Hide the config file since it contains API keys and other sensitive data.
 config.yml
+
+# Hide env 
+client/.env
