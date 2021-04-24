@@ -41,14 +41,14 @@ class App extends React.Component {
       this.ws = ws;
       console.log("Connected!");
       let message = {
-        "type": "geo-position-update",
-        "payload": {
-          "maxDistance": 1000,
-          "position": {
-            "type": "Point",
-            "coordinates": [59.8585, 17.6389]
-          }
-        }
+        type: "geo-position-update",
+        payload: {
+          maxDistance: 1000,
+          position: {
+            type: "Point",
+            coordinates: [59.8585, 17.6389],
+          },
+        },
       };
       console.log("Sending message!");
       this.wsSend(JSON.stringify(message));
@@ -68,11 +68,9 @@ class App extends React.Component {
     ws.onclose = () => {
       console.log("Connection closed");
     };
-    
   }
 
   render() {
-
     return (
       <div className="App">
         {!this.state.vehiclesLoaded ? (
