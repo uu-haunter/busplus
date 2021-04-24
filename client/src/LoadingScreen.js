@@ -1,6 +1,6 @@
 import React from "react";
 import SyncLoader from "react-spinners/SyncLoader";
-import "./Loader.css";
+import "./LoadingScreen.css";
 
 function LoadingScreen(props) {
   return (
