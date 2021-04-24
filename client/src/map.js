@@ -224,7 +224,7 @@ function Map(props) {
   return (
     <div>
       <GoogleMap
-        zoom={15}
+        zoom={16}
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
