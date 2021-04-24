@@ -1,7 +1,7 @@
 import React from "react";
 import Map from "./map.js";
 import SearchBar from "./SearchBar.js";
-import Loader from "./Loader.js";
+import LoadingScreen from "./LoadingScreen.js";
 import "./App.css";
 
 class App extends React.Component {
@@ -76,7 +76,7 @@ class App extends React.Component {
     return (
       <div className="App">
         {!this.state.vehiclesLoaded ? (
-          <Loader />
+          <LoadingScreen />
         ) : (
           <div className="App-header">
             <Map
