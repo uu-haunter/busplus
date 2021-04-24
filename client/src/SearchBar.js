@@ -2,17 +2,35 @@ import SearchIcon from "@material-ui/icons/Search";
 import IconButton from "@material-ui/core/IconButton";
 import InputBase from "@material-ui/core/InputBase";
 import Paper from "@material-ui/core/Paper";
+import { useState } from "react";
+import {routeRequest} from "./map";
 
-function SearchBar() {
+function SearchBar(props) {
+  
+  const [query, setQuery] = useState("");
+
+  const sendRequest = (e) => {
+    e.preventDefault();
+    props.wsSend(JSON.stringify(routeRequest(query)));
+    console.log(query);
+  };
+
   return (
-    <Paper component="form" elevation={2} id="paper">
+    <Paper
+      component="form"
+      elevation={2}
+      id="paper"
+      onSubmit={(e) => sendRequest(e)}
+    >
       <InputBase
-      id="searchField"
-      placeholder="Search"
-      inputProps={{ 'aria-label': 'search google maps' }}
+        id="searchField"
+        placeholder="Search"
+        inputProps={{ "aria-label": "search google maps" }}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
       />
       <IconButton type="submit" aria-label="search">
-      <SearchIcon />
+        <SearchIcon />
       </IconButton>
     </Paper>
   );

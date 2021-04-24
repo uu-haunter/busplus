@@ -65,7 +65,9 @@ class App extends React.Component {
             realtimeData={this.state.realtimeData}
             route={this.state.route}
           />
-          <SearchBar/>
+          <SearchBar
+            wsSend={this.wsSend}
+          />
         </div>
       </div>
     );
