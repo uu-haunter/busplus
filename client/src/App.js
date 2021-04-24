@@ -50,7 +50,6 @@ class App extends React.Component {
           },
         },
       };
-      console.log("Sending message!");
       this.wsSend(JSON.stringify(message));
     };
     ws.onmessage = (event) => {
