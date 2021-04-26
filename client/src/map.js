@@ -23,6 +23,7 @@ export function routeRequest(lineNo) {
   };
 };
 
+
 /*
  * Function component for the Map of the application
  */
@@ -60,8 +61,6 @@ function Map(props) {
     radius: 30000,
     zIndex: 1,
   };
-
-  
 
   // Hook used to animate buses smoother
   useEffect(() => {
@@ -146,24 +145,22 @@ function Map(props) {
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
     // TODO: uncomment this code once the server supports 'geo-position-update'
-    
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
 
     let message = {
-      "type": "geo-position-update",
-      "payload": {
-        "maxDistance": radius,
-        "position": {
-          "type": "Point",
-          "coordinates": [lat, lng]
-        }
-      }
+      type: "geo-position-update",
+      payload: {
+        maxDistance: radius,
+        position: {
+          type: "Point",
+          coordinates: [lat, lng],
+        },
+      },
     };
 
     props.wsSend(JSON.stringify(message));
-    
   };
 
   // returns the radius of the maps bounding sphere in meters
@@ -224,7 +221,7 @@ function Map(props) {
   return (
     <div>
       <GoogleMap
-        zoom={15}
+        zoom={16}
         center={currentCenter}
         mapContainerStyle={mapContainerStyle}
         options={options}
