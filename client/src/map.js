@@ -21,7 +21,8 @@ export function routeRequest(lineNo) {
       line: lineNo,
     },
   };
-}
+};
+
 
 /*
  * Function component for the Map of the application
@@ -144,7 +145,6 @@ function Map(props) {
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
     // TODO: uncomment this code once the server supports 'geo-position-update'
-
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
