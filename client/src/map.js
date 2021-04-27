@@ -9,6 +9,7 @@ import {
 } from "@react-google-maps/api";
 import { computeDistanceBetween, interpolate } from "spherical-geometry-js";
 import Fab from "@material-ui/core/Fab";
+import Button from "@material-ui/core/Button";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
@@ -22,6 +23,15 @@ export function routeRequest(lineNo) {
     },
   };
 };
+
+function reserveSeatRequest(vehicleId) {
+  return {
+    type: "reserve-seat",
+    payload: {
+      id: vehicleId,
+    },
+  };
+}
 
 
 /*
@@ -266,6 +276,14 @@ function Map(props) {
           >
             <div>
               <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              <Button 
+              variant='outlined' 
+              color='primary' 
+              onClick={() => {
+                props.wsSend(JSON.stringify(reserveSeatRequest(selectedMarker)));
+                }}>
+                Reserve Seat
+                </Button>
             </div>
           </InfoWindow>
         )}
