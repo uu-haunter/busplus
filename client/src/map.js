@@ -22,8 +22,8 @@ export function routeRequest(lineNo) {
       line: lineNo,
     },
   };
-};
-
+}
+// Message to reserve seat
 function reserveSeatRequest(vehicleId) {
   return {
     type: "reserve-seat",
@@ -33,6 +33,12 @@ function reserveSeatRequest(vehicleId) {
   };
 }
 
+// Message to unreserve seat
+function unreserveSeatRequest() {
+  return {
+    type: "unreserve-seat",
+  };
+}
 
 /*
  * Function component for the Map of the application
@@ -148,6 +154,14 @@ function Map(props) {
     setRoute(props.route);
   }, [props.route]);
 
+  // Update the position every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      onBoundsChanged();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
     mapRef.current = map;
@@ -155,7 +169,6 @@ function Map(props) {
 
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
-    // TODO: uncomment this code once the server supports 'geo-position-update'
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
@@ -277,25 +290,33 @@ function Map(props) {
           >
             <div>
               <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
-              {!activeReservation ? (<Button
-              variant='outlined' 
-              color='primary' 
-              onClick={() => {
-                setReservation(true);
-                props.wsSend(JSON.stringify(reserveSeatRequest(selectedMarker)));
-                }}>
-                Reserve Seat
-                </Button>) : 
-                (<Button
-                variant='contained' 
-                color='secondary' 
-                onClick={() => {
-                  setReservation(false);
-                  //TODO: server request for cancelling reservations
-                  }}>
+              {!activeReservation ? (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    setReservation(true);
+                    props.wsSend(
+                      JSON.stringify(reserveSeatRequest(selectedMarker))
+                    );
+                  }}
+                >
+                  Reserve Seat
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => {
+                    setReservation(false);
+                    props.wsSend(
+                      JSON.stringify(unreserveSeatRequest())
+                    );
+                  }}
+                >
                   cancel reservation
-                  </Button>)
-                }
+                </Button>
+              )}
             </div>
           </InfoWindow>
         )}
