@@ -135,6 +135,7 @@ function Map(props) {
           return [
             vehicleId,
             {
+              line: vehicle.line,
               sourcePosition: entry
                 ? { ...entry.targetPosition }
                 : { ...vehicle.position },
@@ -158,6 +159,7 @@ function Map(props) {
   useEffect(() => {
     const interval = setInterval(() => {
       onBoundsChanged();
+      //TODO: Maybe update userposition here
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -266,7 +268,7 @@ function Map(props) {
             onClick={() => {
               setSelectedMarker(vehicleId);
               // TODO: Change argument for routeRequest when we have line data
-              props.wsSend(JSON.stringify(routeRequest("30")));
+              props.wsSend(JSON.stringify(routeRequest(vehicle.line)));
             }}
             icon={{
               url: "/bus.svg",
