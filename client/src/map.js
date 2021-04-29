@@ -48,6 +48,7 @@ function Map(props) {
 
   // State-variables
   const styles = require("./mapstyle.json");
+  const [activeReservation, setReservation] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(styles.day);
   const [vehicleData, setVehicleData] = useState({
     timestamp: null,
@@ -276,14 +277,25 @@ function Map(props) {
           >
             <div>
               <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
-              <Button 
+              {!activeReservation ? (<Button
               variant='outlined' 
               color='primary' 
               onClick={() => {
+                setReservation(true);
                 props.wsSend(JSON.stringify(reserveSeatRequest(selectedMarker)));
                 }}>
                 Reserve Seat
-                </Button>
+                </Button>) : 
+                (<Button
+                variant='contained' 
+                color='secondary' 
+                onClick={() => {
+                  setReservation(false);
+                  //TODO: server request for cancelling reservations
+                  }}>
+                  cancel reservation
+                  </Button>)
+                }
             </div>
           </InfoWindow>
         )}
