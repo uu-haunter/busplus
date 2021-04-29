@@ -291,7 +291,7 @@ function Map(props) {
             }}
           >
             <div>
-              <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              <p>{`Bus ${vehicleData.vehicles[selectedMarker].line} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
               {!activeReservation ? (
                 <Button
                   variant="outlined"
