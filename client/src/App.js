@@ -3,6 +3,7 @@ import Map from "./map.js";
 import SearchBar from "./SearchBar.js";
 import LoadingScreen from "./LoadingScreen.js";
 import "./App.css";
+import { geoPositionUpdateMessage } from "./messages.js";
 
 class App extends React.Component {
   constructor() {
@@ -36,21 +37,12 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    let ws = new WebSocket("ws://localhost:8080/ws");
+    let ws = new WebSocket("ws://192.168.72.223:8080/ws");
     ws.onopen = () => {
       this.ws = ws;
       console.log("Connected!");
-      let message = {
-        type: "geo-position-update",
-        payload: {
-          maxDistance: 1000,
-          position: {
-            type: "Point",
-            coordinates: [59.8585, 17.6389],
-          },
-        },
-      };
-      this.wsSend(JSON.stringify(message));
+
+      this.wsSend(JSON.stringify(geoPositionUpdateMessage(1000, 59.8585, 17.6389)));
     };
     ws.onmessage = (event) => {
       console.log("Message received", event.data);
