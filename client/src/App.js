@@ -37,7 +37,7 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    let ws = new WebSocket("ws://192.168.72.223:8080/ws");
+    let ws = new WebSocket("ws://localhost:8080/ws");
     ws.onopen = () => {
       this.ws = ws;
       console.log("Connected!");
