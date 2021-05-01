@@ -9,6 +9,7 @@ import {
 } from "@react-google-maps/api";
 import { computeDistanceBetween, interpolate } from "spherical-geometry-js";
 import Fab from "@material-ui/core/Fab";
+import Button from "@material-ui/core/Button";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
@@ -21,8 +22,23 @@ export function routeRequest(lineNo) {
       line: lineNo,
     },
   };
-};
+}
+// Message to reserve seat
+function reserveSeatRequest(vehicleId) {
+  return {
+    type: "reserve-seat",
+    payload: {
+      id: vehicleId,
+    },
+  };
+}
 
+// Message to unreserve seat
+function unreserveSeatRequest() {
+  return {
+    type: "unreserve-seat",
+  };
+}
 
 /*
  * Function component for the Map of the application
@@ -38,6 +54,7 @@ function Map(props) {
 
   // State-variables
   const styles = require("./mapstyle.json");
+  const [activeReservation, setReservation] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(styles.day);
   const [vehicleData, setVehicleData] = useState({
     timestamp: null,
@@ -118,6 +135,7 @@ function Map(props) {
           return [
             vehicleId,
             {
+              line: vehicle.line,
               sourcePosition: entry
                 ? { ...entry.targetPosition }
                 : { ...vehicle.position },
@@ -137,6 +155,15 @@ function Map(props) {
     setRoute(props.route);
   }, [props.route]);
 
+  // Update the position every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      onBoundsChanged();
+      //TODO: Maybe update userposition here
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const mapRef = React.useRef();
   const onMapLoad = React.useCallback((map) => {
     mapRef.current = map;
@@ -144,7 +171,6 @@ function Map(props) {
 
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
-    // TODO: uncomment this code once the server supports 'geo-position-update'
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
@@ -242,7 +268,7 @@ function Map(props) {
             onClick={() => {
               setSelectedMarker(vehicleId);
               // TODO: Change argument for routeRequest when we have line data
-              props.wsSend(JSON.stringify(routeRequest("30")));
+              props.wsSend(JSON.stringify(routeRequest(vehicle.line)));
             }}
             icon={{
               url: "/bus.svg",
@@ -265,7 +291,34 @@ function Map(props) {
             }}
           >
             <div>
-              <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              <p>{`Bus ${vehicleData.vehicles[selectedMarker].line} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              {!activeReservation ? (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    setReservation(true);
+                    props.wsSend(
+                      JSON.stringify(reserveSeatRequest(selectedMarker))
+                    );
+                  }}
+                >
+                  Reserve Seat
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => {
+                    setReservation(false);
+                    props.wsSend(
+                      JSON.stringify(unreserveSeatRequest())
+                    );
+                  }}
+                >
+                  cancel reservation
+                </Button>
+              )}
             </div>
           </InfoWindow>
         )}

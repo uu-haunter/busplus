@@ -3,16 +3,18 @@ import IconButton from "@material-ui/core/IconButton";
 import InputBase from "@material-ui/core/InputBase";
 import Paper from "@material-ui/core/Paper";
 import { useState } from "react";
-import {routeRequest} from "./map";
+import { routeRequest } from "./map";
 
 function SearchBar(props) {
-  
   const [query, setQuery] = useState("");
 
   const sendRequest = (e) => {
     e.preventDefault();
-    props.wsSend(JSON.stringify(routeRequest(query)));
-    console.log(query);
+    if (query) {
+      props.wsSend(JSON.stringify(routeRequest(query)));
+    } else {
+      return;
+    }
   };
 
   return (
@@ -24,7 +26,7 @@ function SearchBar(props) {
     >
       <InputBase
         id="searchField"
-        placeholder="Search"
+        placeholder="Search busline..."
         inputProps={{ "aria-label": "search google maps" }}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
