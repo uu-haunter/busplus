@@ -8,8 +8,14 @@ import {
   Polyline,
 } from "@react-google-maps/api";
 import { computeDistanceBetween, interpolate } from "spherical-geometry-js";
-import { routeRequest, geoPositionUpdateMessage } from "./messages.js";
+import {
+  routeRequest,
+  geoPositionUpdateRequest,
+  reserveSeatRequest,
+  unreserveSeatRequest
+} from "./messages.js";
 import Fab from "@material-ui/core/Fab";
+import Button from "@material-ui/core/Button";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
@@ -67,8 +73,7 @@ function vehicleDataReducer(state, action) {
 
   if(action.type === "setNewData") {
     let now = new Date().getTime();
-    let lastTimestamp = state.timestamp || 0;
-    let serverUpdateInterval = now - lastTimestamp;
+    let serverUpdateInterval = now - state.timestamp;
 
     return {
       timestamp: now,
@@ -96,16 +101,13 @@ function vehicleDataReducer(state, action) {
   }
 
   if(action.type === "animate") {
-    // The time interval at which realtime updates are received
-    let serverUpdateInterval = state.serverUpdateInterval || 1;
-
     // The time that has passed since the last realtime update was received.
     let dt = new Date().getTime() - state.timestamp;
 
     // Dividing the time delta with the time interval of realtime updates
     // in order to get the fraction of the way that the vehicle should have
     // reached if it moves at a constant rate of speed.
-    let fraction = dt*1.0 / serverUpdateInterval;
+    let fraction = dt*1.0 / state.serverUpdateInterval;
 
     if(fraction > 1) return state;
 
@@ -148,8 +150,8 @@ function Map(props) {
   const [vehicleData, vehicleDataDispatch] = useReducer(
     vehicleDataReducer,
     {
-      timestamp: null,
-      serverUpdateInterval: null,
+      timestamp: 0,
+      serverUpdateInterval: 1,
       vehicles: {}
     }
   );
@@ -157,6 +159,7 @@ function Map(props) {
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [currentRoute, setRoute] = useState(null);
+  const [activeReservation, setReservation] = useState(false);
 
   const { isLoaded, loadError } = useLoadScript({
     // Reads the google-maps api_key from your locally created .env file
@@ -198,13 +201,22 @@ function Map(props) {
     setRoute(props.route);
   }, [props.route]);
 
+  // Update the position every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      onBoundsChanged();
+      //TODO: Maybe update userposition here
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
 
-    props.wsSend(JSON.stringify(geoPositionUpdateMessage(radius, lat, lng)));
+    props.wsSend(JSON.stringify(geoPositionUpdateRequest(radius, lat, lng)));
   };
 
   // returns the radius of the maps bounding sphere in meters
@@ -260,7 +272,7 @@ function Map(props) {
             onClick={() => {
               setSelectedMarker(vehicleId);
               // TODO: Change argument for routeRequest when we have line data
-              props.wsSend(JSON.stringify(routeRequest("30")));
+              props.wsSend(JSON.stringify(routeRequest(vehicle.line)));
             }}
             icon={{
               path: "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
@@ -285,7 +297,34 @@ function Map(props) {
             }}
           >
             <div>
-              <p>{`Bus ${selectedMarker} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              <p>{`Bus ${vehicleData.vehicles[selectedMarker].line} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              {!activeReservation ? (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    setReservation(true);
+                    props.wsSend(
+                      JSON.stringify(reserveSeatRequest(selectedMarker))
+                    );
+                  }}
+                >
+                  Reserve Seat
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => {
+                    setReservation(false);
+                    props.wsSend(
+                      JSON.stringify(unreserveSeatRequest())
+                    );
+                  }}
+                >
+                  cancel reservation
+                </Button>
+              )}
             </div>
           </InfoWindow>
         )}

@@ -8,7 +8,7 @@ export function routeRequest(lineNo) {
   };
 };
 
-export function geoPositionUpdateMessage(maxDistance, lat, lng) {
+export function geoPositionUpdateRequest(maxDistance, lat, lng) {
   return {
     type: "geo-position-update",
     payload: {
@@ -18,5 +18,22 @@ export function geoPositionUpdateMessage(maxDistance, lat, lng) {
         coordinates: [lat, lng],
       },
     },
+  };
+}
+
+// Message to reserve seat
+export function reserveSeatRequest(vehicleId) {
+  return {
+    type: "reserve-seat",
+    payload: {
+      id: vehicleId,
+    },
+  };
+}
+
+// Message to unreserve seat
+export function unreserveSeatRequest() {
+  return {
+    type: "unreserve-seat",
   };
 }

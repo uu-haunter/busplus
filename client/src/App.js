@@ -3,7 +3,7 @@ import Map from "./map.js";
 import SearchBar from "./SearchBar.js";
 import LoadingScreen from "./LoadingScreen.js";
 import "./App.css";
-import { geoPositionUpdateMessage } from "./messages.js";
+import { geoPositionUpdateRequest } from "./messages.js";
 
 class App extends React.Component {
   constructor() {
@@ -42,7 +42,7 @@ class App extends React.Component {
       this.ws = ws;
       console.log("Connected!");
 
-      this.wsSend(JSON.stringify(geoPositionUpdateMessage(1000, 59.8585, 17.6389)));
+      this.wsSend(JSON.stringify(geoPositionUpdateRequest(1000, 59.8585, 17.6389)));
     };
     ws.onmessage = (event) => {
       console.log("Message received", event.data);
