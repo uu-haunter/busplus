@@ -86,6 +86,7 @@ function vehicleDataReducer(state, action) {
           return [
             vehicleId,
             {
+              line: vehicle.line,
               sourcePosition: entry
                 ? { ...entry.targetPosition }
                 : { ...vehicle.position },
