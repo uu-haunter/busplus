@@ -26,7 +26,7 @@ export function reserveSeatRequest(vehicleId) {
   return {
     type: "reserve-seat",
     payload: {
-      id: vehicleId,
+      descriptorId: vehicleId,
     },
   };
 }
