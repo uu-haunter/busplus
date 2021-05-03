@@ -74,7 +74,7 @@ Sent to reserve a seat on a bus with a specific id.
 {
     "type": "reserve-seat",
     "payload": {
-        "descriptor_id": "123456"
+        "descriptorId": "123456"
     }
 }
 ```
