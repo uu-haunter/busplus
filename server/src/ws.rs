@@ -7,8 +7,11 @@ use actix_web_actors::ws;
 use uuid::Uuid;
 
 use crate::lobby::Lobby;
-use crate::messages::{Connect, Disconnect, PositionUpdate, RouteRequest, WsMessage};
+use crate::messages::{
+    Connect, Disconnect, PositionUpdate, ReserveSeat, RouteRequest, UnreserveSeat, WsMessage,
+};
 use crate::protocol::client_protocol::ClientInput;
+use crate::protocol::server_protocol::{ErrorType, ServerOutput};
 
 /// How often heartbeat pings are sent.
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -152,11 +155,23 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                                 position: inp,
                             });
                         }
+                        ClientInput::ReserveSeat(inp) => {
+                            self.lobby_addr.do_send(ReserveSeat {
+                                self_id: self.id,
+                                descriptor_id: inp.descriptor_id,
+                            });
+                        }
+                        ClientInput::UnreserveSeat => {
+                            self.lobby_addr.do_send(UnreserveSeat { self_id: self.id });
+                        }
                     }
                 } else {
-                    // TODO: If the message sent by the client is not parseable as JSON, an error message
-                    // should be sent back to the user.
-                    ctx.text("error");
+                    // If the message sent by the client is not parseable as JSON, an error message
+                    // is sent back to the user.
+                    ctx.text(ServerOutput::error_message(
+                        ErrorType::UnknownMessage,
+                        "Unsupported message".to_owned(),
+                    ));
                 }
             }
 

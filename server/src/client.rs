@@ -17,15 +17,20 @@ pub struct ClientData {
     /// Where the client is currently positioned on their map. Used to send
     /// relevant data to each individual client.
     pub position: Option<GeoPosition>,
+
+    /// None if the client has not reserved a seat on a bus, Some with a descriptor_id
+    /// if the client has reserved a seat.
+    pub reserved_seat: Option<String>,
 }
 
 impl ClientData {
-    /// Constructs a new client with no position.
+    /// Constructs a new client with no position and no reserved seat.
     pub fn new(id: Uuid, addr: Socket) -> Self {
         ClientData {
             id,
             addr,
             position: None,
+            reserved_seat: None,
         }
     }
 

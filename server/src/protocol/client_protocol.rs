@@ -19,6 +19,12 @@ pub enum ClientInput {
 
     #[serde(rename = "geo-position-update")]
     GeoPositionUpdate(GeoPosition),
+
+    #[serde(rename = "reserve-seat")]
+    ReserveSeat(VehicleDescriptor),
+
+    #[serde(rename = "unreserve-seat")]
+    UnreserveSeat,
 }
 
 /// Contains a line number
@@ -50,4 +56,11 @@ pub struct GeoPositionPoint {
 
     // The vector usuaully only have two values [latitude, longitude].
     pub coordinates: Vec<f32>,
+}
+
+/// Contains a vehicle descriptor id
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VehicleDescriptor {
+    pub descriptor_id: String,
 }
