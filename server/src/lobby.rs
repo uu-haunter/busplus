@@ -14,7 +14,9 @@ use crate::client::ClientData;
 use crate::config::{Config, CONFIG_FILE_PATH};
 use crate::database::DbConnection;
 use crate::gtfs::trafiklab::TrafiklabApi;
-use crate::messages::{Connect, Disconnect, PositionUpdate, RouteRequest, WsMessage};
+use crate::messages::{
+    Connect, Disconnect, EchoPositions, PositionUpdate, RouteRequest, WsMessage,
+};
 use crate::protocol::server_protocol::{
     RouteInformationOutput, ServerOutput, Vehicle, VehiclePositionsOutput,
 };
@@ -93,7 +95,7 @@ impl Lobby {
 
     /// This method starts an interval which fetches new data from the Trafiklab API.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
-        ctx.run_interval(self.echo_positions_interval, |act, _| {
+        ctx.run_interval(self.echo_positions_interval, |act, ctx| {
             // Fetch vehicle positions from Trafiklab's API.
             match act.trafiklab.fetch_vehicle_positions() {
                 Err(reason) => {
@@ -109,42 +111,9 @@ impl Lobby {
                 Ok(()) => (),
             }
 
-            let vehicle_data = act.trafiklab.get_vehicle_positions().unwrap();
-
-            // TODO: Instead of collecting all data in a big chunk like this,
-            // the data should be tailored depending on what buses the user can see
-            // in regards to their "position".
-
-            let mut vehicle_positions = vehicle_data
-                .entity
-                .iter()
-                .map(|entity| {
-                    let vehicle = entity.vehicle.as_ref().unwrap();
-
-                    let descriptor_id = vehicle
-                        .vehicle
-                        .as_ref()
-                        .unwrap()
-                        .id
-                        .as_ref()
-                        .unwrap()
-                        .to_string();
-
-                    let trip_id = match vehicle.trip.as_ref() {
-                        Some(value) => match value.trip_id.as_ref() {
-                            Some(id) => Some(id.to_string()),
-                            None => None,
-                        },
-                        None => None,
-                    };
-                    Vehicle {
-                        descriptor_id: descriptor_id,
-                        trip_id: trip_id,
-                        position: vehicle.position.as_ref().unwrap().clone(),
-                    }
-                })
-                .collect();
-            act.send_filtered_positions(vehicle_positions);
+            // Since we cannot handle asynchronous calls here, we defer to a message handler that
+            // can handle asynchronous calls easily.
+            ctx.address().do_send(EchoPositions);
         });
     }
 }
@@ -210,6 +179,76 @@ impl Lobby {
                 }
             }
         });
+    }
+}
+
+impl Handler<EchoPositions> for Lobby {
+    type Result = ResponseActFuture<Self, ()>;
+
+    fn handle(&mut self, _: EchoPositions, _: &mut Context<Self>) -> Self::Result {
+        let vehicle_data = self.trafiklab.get_vehicle_positions().unwrap();
+
+        // Fetch vehicle positions.
+        let mut vehicle_positions: Vec<Vehicle> = vehicle_data
+            .entity
+            .iter()
+            .map(|entity| {
+                let vehicle = entity.vehicle.as_ref().unwrap();
+
+                let descriptor_id = vehicle
+                    .vehicle
+                    .as_ref()
+                    .unwrap()
+                    .id
+                    .as_ref()
+                    .unwrap()
+                    .to_string();
+
+                let trip_id = match vehicle.trip.as_ref() {
+                    Some(value) => match value.trip_id.as_ref() {
+                        Some(id) => Some(id.to_string()),
+                        None => None,
+                    },
+                    None => None,
+                };
+                Vehicle {
+                    descriptor_id: descriptor_id,
+                    trip_id: trip_id,
+                    line: None,
+                    position: vehicle.position.as_ref().unwrap().clone(),
+                }
+            })
+            .collect();
+
+        let conn = self.db_connection.clone();
+
+        Box::pin(
+            async move {
+                // Remove all vehicles that are not mapped to a trip_id since they are most likely not in trafic
+                vehicle_positions = vehicle_positions
+                    .into_iter()
+                    .filter(|vehicle| vehicle.trip_id.is_some())
+                    .collect();
+
+                for v in vehicle_positions.iter_mut() {
+                    if let Some(trip_id) = &v.trip_id {
+                        if let Some(trip) = conn.get_trip(doc! {"trip_id": trip_id}).await {
+                            if let Some(route) =
+                                conn.get_route(doc! {"route_id": trip.route_id}).await
+                            {
+                                v.line = Some(route.route_short_name);
+                            }
+                        }
+                    }
+                }
+
+                vehicle_positions
+            }
+            .into_actor(self)
+            .map(move |positions, act, _ctx| {
+                act.send_filtered_positions(positions);
+            }),
+        )
     }
 }
 

@@ -34,6 +34,7 @@ pub struct VehiclePositionsOutput {
 #[serde(rename_all = "camelCase")]
 pub struct Vehicle {
     pub descriptor_id: String,
+    pub line: Option<String>,
     pub trip_id: Option<String>,
     pub position: Position,
 }

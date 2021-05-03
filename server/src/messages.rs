@@ -10,6 +10,11 @@ use crate::protocol::client_protocol::GeoPosition;
 #[rtype(result = "()")]
 pub struct WsMessage(pub String);
 
+/// Lobby sends this to itself internally to echo out vehicle positions.
+#[derive(Debug, Message)]
+#[rtype(result = "()")]
+pub struct EchoPositions;
+
 /// WebsocketClient sends this to connect to the lobby.
 #[derive(Debug, Message)]
 #[rtype(result = "()")]
