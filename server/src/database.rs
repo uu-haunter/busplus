@@ -34,59 +34,69 @@ impl DbConnection {
 
 impl DbConnection {
     /// Query the database for a "route".
-    pub async fn get_route(&self, query: Document) -> Result<Route> {
-        let value_option = self
+    pub async fn get_route(&self, query: Document) -> Option<Route> {
+        match self
             .static_db()
             .collection("routes")
             .find_one(query, None)
-            .await?;
-
-        let row: Route = from_bson(Bson::Document(value_option.unwrap())).unwrap();
-
-        Ok(row)
+            .await
+        {
+            Ok(value_option) => match value_option {
+                Some(doc) => Some(from_bson(Bson::Document(doc)).unwrap()),
+                None => None,
+            },
+            Err(_) => None,
+        }
     }
 
     /// Query the database for a "trip".
-    pub async fn get_trip(&self, query: Document) -> Result<Trip> {
-        let value_option = self
+    pub async fn get_trip(&self, query: Document) -> Option<Trip> {
+        match self
             .static_db()
             .collection("trips")
             .find_one(query, None)
-            .await?;
-
-        let row: Trip = from_bson(Bson::Document(value_option.unwrap())).unwrap();
-
-        Ok(row)
+            .await
+        {
+            Ok(value_option) => match value_option {
+                Some(doc) => Some(from_bson(Bson::Document(doc)).unwrap()),
+                None => None,
+            },
+            Err(_) => None,
+        }
     }
 
     /// Query the database for a list of "shapes".
-    pub async fn get_shapes(&self, query: Document) -> Result<Vec<RouteNode>> {
-        let mut cursor = self
+    pub async fn get_shapes(&self, query: Document) -> Option<Vec<RouteNode>> {
+        match self
             .static_db()
             .collection("shapes")
             .find(query, None)
-            .await?;
+            .await
+        {
+            Ok(mut cursor) => {
+                // Create a vector to store all the nodes in.
+                let mut nodes = Vec::new();
 
-        // Create a vector to store all the nodes in.
-        let mut nodes = Vec::new();
+                while let Some(result) = cursor.next().await {
+                    // Each "result" in the cursor iterator is a result from a mongodb
+                    // query since not all documents might be fetched at the same time.
+                    if let Ok(document) = result {
+                        // Type annotate.
+                        let shape: Shape = from_bson(Bson::Document(document)).unwrap();
 
-        while let Some(result) = cursor.next().await {
-            // Each "result" in the cursor iterator is a result from a mongodb
-            // query since not all documents might be fetched at the same time.
-            if let Ok(document) = result {
-                // Type annotate.
-                let shape: Shape = from_bson(Bson::Document(document)).unwrap();
+                        // Store a RouteNode representation in the shapes list.
+                        nodes.push(RouteNode {
+                            lat: shape.shape_pt_lat,
+                            lng: shape.shape_pt_lon,
+                            sequence: shape.shape_pt_sequence.parse().unwrap(),
+                        });
+                    }
+                }
 
-                // Store a RouteNode representation in the shapes list.
-                nodes.push(RouteNode {
-                    lat: shape.shape_pt_lat,
-                    lng: shape.shape_pt_lon,
-                    sequence: shape.shape_pt_sequence.parse().unwrap(),
-                });
+                // Return all the shapes.
+                Some(nodes)
             }
+            Err(_) => None,
         }
-
-        // Return all the shapes.
-        Ok(nodes)
     }
 }

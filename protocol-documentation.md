@@ -14,6 +14,18 @@ Every message that is sent between the client and the server must be in the form
 }
 ```
 
+# Error message
+An error message is sent by the server if the client has sent an unknown message or bad data, if the server can't handle a request due to some reason or if the database server is down etc.
+```json
+{
+    "type": "error",
+    "payload": {
+        "error_type": "SERVER_ERROR | UNKNOWN_MESSAGE | BAD_DATA | POSITION | LINE_INFO | ROUTE_INFO | RESERVE | UNRESERVE",
+        "error_message": "<error message>",
+    }
+}
+```
+
 # Client messages
 Messages that are sent from a client to the server.
 
@@ -62,8 +74,17 @@ Sent to reserve a seat on a bus with a specific id.
 {
     "type": "reserve-seat",
     "payload": {
-        "id": "123456"
+        "descriptor_id": "123456"
     }
+}
+```
+
+### Unreserve seat
+Sent to unreserve a seat on a bus with a specific id.
+> Not implemented
+```json
+{
+    "type": "unreserve-seat"
 }
 ```
 

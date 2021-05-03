@@ -14,9 +14,11 @@ use crate::client::ClientData;
 use crate::config::{Config, CONFIG_FILE_PATH};
 use crate::database::DbConnection;
 use crate::gtfs::trafiklab::TrafiklabApi;
-use crate::messages::{Connect, Disconnect, PositionUpdate, RouteRequest, WsMessage};
+use crate::messages::{
+    Connect, Disconnect, PositionUpdate, ReserveSeat, RouteRequest, UnreserveSeat, WsMessage,
+};
 use crate::protocol::server_protocol::{
-    RouteInformationOutput, ServerOutput, Vehicle, VehiclePositionsOutput,
+    ErrorOutput, ErrorType, RouteInformationOutput, ServerOutput, Vehicle, VehiclePositionsOutput,
 };
 
 use crate::util::filter_vehicle_position;
@@ -160,6 +162,7 @@ impl Lobby {
     }
 
     /// Sends a message to every connected client stored in self.clients.
+    #[allow(dead_code)]
     fn send_to_everyone(&self, message: &str) {
         self.clients
             .keys()
@@ -173,6 +176,15 @@ impl Lobby {
             .keys()
             .filter(|client_id| *client_id.to_owned() != *self_id)
             .for_each(|client_id| self.send_message(message, client_id));
+    }
+
+    /// Sends an error message to a client.
+    #[allow(dead_code)]
+    fn send_error(&self, id_to: &Uuid, error_type: ErrorType, error_message: String) {
+        self.send_message(
+            &ServerOutput::error_message(error_type, error_message),
+            id_to,
+        );
     }
 }
 
@@ -275,29 +287,46 @@ impl Handler<RouteRequest> for Lobby {
 
         Box::pin(
             async move {
-                let route_id = match conn.get_route(doc! {"route_short_name": line_number}).await {
-                    Ok(route) => route.route_id,
-                    Err(_) => {
-                        // TODO: Handle error by creating error message to be sent back to the client.
-                        return String::from("");
+                // Check if the line number is not empty and only contains numbers
+                if msg.line_number.is_empty() || !msg.line_number.chars().all(|c| c.is_numeric()) {
+                    return ServerOutput::error_message(
+                        ErrorType::RouteInfo,
+                        format!("'{}' is not a valid line number", line_number),
+                    );
+                }
+
+                let route_id = match conn
+                    .get_route(doc! {"route_short_name": &line_number})
+                    .await
+                {
+                    Some(route) => route.route_id,
+                    None => {
+                        return ServerOutput::error_message(
+                            ErrorType::RouteInfo,
+                            format!("'{}' is not a valid line number", line_number),
+                        );
                     }
                 };
 
                 // Make a request to the database to figure out what "shape_id" the route has.
                 let shape_id = match conn.get_trip(doc! {"route_id": &route_id}).await {
-                    Ok(trip) => trip.shape_id.to_string(),
-                    Err(_) => {
-                        // TODO: Handle error by creating error message to be sent back to the client.
-                        return String::from("");
+                    Some(trip) => trip.shape_id.to_string(),
+                    None => {
+                        return ServerOutput::error_message(
+                            ErrorType::ServerError,
+                            "Unable to retrieve data".to_owned(),
+                        );
                     }
                 };
 
                 // Make a request to the database to get all "shapes" from the "shape_id".
                 let nodes = match conn.get_shapes(doc! {"shape_id": &shape_id}).await {
-                    Ok(nodes) => nodes,
-                    Err(_) => {
-                        // TODO: Handle error by creating error message to be sent back to the client.
-                        return String::from("");
+                    Some(nodes) => nodes,
+                    None => {
+                        return ServerOutput::error_message(
+                            ErrorType::ServerError,
+                            "Unable to retrieve data".to_owned(),
+                        );
                     }
                 };
 
@@ -318,6 +347,73 @@ impl Handler<RouteRequest> for Lobby {
                 // Send the data back to the client.
                 // We don't need to check if the client is still connected here since "send_message" checks this.
                 act.send_message(&message, &client_id);
+            }),
+        )
+    }
+}
+
+impl Handler<ReserveSeat> for Lobby {
+    type Result = ResponseActFuture<Self, ()>;
+
+    // This method is called whenever the Lobby receives a "ReserveSeat" message.
+    fn handle(&mut self, msg: ReserveSeat, _: &mut Context<Self>) -> Self::Result {
+        println!(
+            "Client with id '{}' reserved a seat on '{}'",
+            &msg.self_id, &msg.descriptor_id
+        );
+
+        Box::pin(
+            async move {
+                // Update data about bus with 'descriptor_id' in the database
+                // (increment expected_passenger_count by 1).
+            }
+            .into_actor(self)
+            .map(move |_, act, _| {
+                let client_data = act.clients.get_mut(&msg.self_id).unwrap();
+
+                // If the update in the database was successful, store the descriptor id for
+                // the bus on which the seat was reserved so that it can be "unreserved" later.
+                client_data.reserved_seat = Some(msg.descriptor_id);
+            }),
+        )
+    }
+}
+
+impl Handler<UnreserveSeat> for Lobby {
+    type Result = ResponseActFuture<Self, ()>;
+
+    // This method is called whenever the Lobby receives a "UnreserveSeat" message.
+    fn handle(&mut self, msg: UnreserveSeat, _: &mut Context<Self>) -> Self::Result {
+        println!("Client with id '{}' unreserved their seat", &msg.self_id);
+
+        let reserved_seat = self
+            .clients
+            .get_mut(&msg.self_id)
+            .unwrap()
+            .reserved_seat
+            .clone();
+
+        Box::pin(
+            async move {
+                if reserved_seat.is_none() {
+                    return None;
+                }
+
+                // Update data about bus with 'descriptor_id' in the database
+                // (decrement expected_passenger_count by 1).
+
+                reserved_seat
+            }
+            .into_actor(self)
+            .map(move |result, act, _| {
+                // Only if the returned result is Some, should the clients reserved seat
+                // be set back to None.
+                if result.is_some() {
+                    let client_data = act.clients.get_mut(&msg.self_id).unwrap();
+
+                    // Remove the previously stored reserved seat.
+                    client_data.reserved_seat = None;
+                }
             }),
         )
     }

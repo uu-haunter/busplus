@@ -4,6 +4,20 @@ use serde::{Deserialize, Serialize};
 
 use crate::gtfs::transit_realtime::Position;
 
+/// Defines possible errors that might occur on the server side.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ErrorType {
+    ServerError,
+    UnknownMessage,
+    BadData,
+    Position,
+    LineInfo,
+    RouteInfo,
+    Reserve,
+    Unreserve,
+}
+
 /// This is all possible output the server should be able to send to the
 /// client. Every enumerated value in this type must have a:
 ///
@@ -13,11 +27,32 @@ use crate::gtfs::transit_realtime::Position;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum ServerOutput {
+    #[serde(rename = "error")]
+    Error(ErrorOutput),
+
     #[serde(rename = "vehicle-positions")]
     VehiclePositions(VehiclePositionsOutput),
 
     #[serde(rename = "route-info")]
     RouteInformation(RouteInformationOutput),
+}
+
+impl ServerOutput {
+    pub fn error_message(error_type: ErrorType, error_message: String) -> String {
+        serde_json::to_string(&ServerOutput::Error(ErrorOutput {
+            error_type,
+            error_message,
+        }))
+        .unwrap()
+    }
+}
+
+/// Represent an error.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ErrorOutput {
+    pub error_type: ErrorType,
+    pub error_message: String,
 }
 
 /// Represent a list of vehicles.
