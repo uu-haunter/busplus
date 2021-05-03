@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer } from "react";
 import {
   GoogleMap,
   useLoadScript,
@@ -8,129 +8,80 @@ import {
   Polyline,
 } from "@react-google-maps/api";
 import { computeDistanceBetween, interpolate } from "spherical-geometry-js";
+import {
+  routeRequest,
+  geoPositionUpdateRequest,
+  reserveSeatRequest,
+  unreserveSeatRequest
+} from "./messages.js";
 import Fab from "@material-ui/core/Fab";
 import Button from "@material-ui/core/Button";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
 import MyLocationIcon from "@material-ui/icons/MyLocation";
 import "./App.css";
 
-// Returns a route request message for a specific bus line
-export function routeRequest(lineNo) {
-  return {
-    type: "get-route-info",
-    payload: {
-      line: lineNo,
-    },
-  };
+// the maps default latitude, longitude and center
+const defaultLat = 59.8585;
+const defaultLng = 17.6389;
+const defaultCenter = {
+  lat: defaultLat,
+  lng: defaultLng,
+};
+
+// the maps styling
+const styles = require("./mapstyle.json");
+
+// Styling for the maps container
+const mapContainerStyle = {
+  height: "100vh",
+  width: "100vw",
+};
+
+// Styling for the polyline that is shown when drawing
+// a route
+const polyLineOptions = {
+  strokeColor: "#FF0000",
+  strokeOpacity: 0.8,
+  strokeWeight: 2,
+  fillColor: "#FF0000",
+  fillOpacity: 0.35,
+  clickable: false,
+  draggable: false,
+  editable: false,
+  visible: true,
+  radius: 30000,
+  zIndex: 1,
+};
+
+function updateNavigatorGeolocation(callback) {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(callback);
+  } else {
+    alert("Browser error");
+  }
 }
-// Message to reserve seat
-function reserveSeatRequest(vehicleId) {
-  return {
-    type: "reserve-seat",
-    payload: {
-      id: vehicleId,
-    },
-  };
+
+// linear interpolation between two angles
+function lerpDegrees(source, target, amount) {
+  let angle = target - source;
+  if(angle > 180) angle -= 360;
+  else if(angle < -180) angle += 360;
+  return source + angle * amount;
 }
 
-// Message to unreserve seat
-function unreserveSeatRequest() {
-  return {
-    type: "unreserve-seat",
-  };
-}
+function vehicleDataReducer(state, action) {
 
-/*
- * Function component for the Map of the application
- */
+  if(action.type === "setNewData") {
+    let now = new Date().getTime();
+    let serverUpdateInterval = now - state.timestamp;
 
-function Map(props) {
-  const defaultLat = 59.8585;
-  const defaultLng = 17.6389;
-  const defaultCenter = {
-    lat: defaultLat,
-    lng: defaultLng,
-  };
-
-  // State-variables
-  const styles = require("./mapstyle.json");
-  const [activeReservation, setReservation] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState(styles.day);
-  const [vehicleData, setVehicleData] = useState({
-    timestamp: null,
-    vehicles: {},
-  });
-  const [currentCenter, setCurrentCenter] = useState(defaultCenter);
-  const [selectedMarker, setSelectedMarker] = useState(null);
-  const [currentRoute, setRoute] = useState(null);
-
-  // Options that specify the route-drawing
-  const polyLineOptions = {
-    strokeColor: "#FF0000",
-    strokeOpacity: 0.8,
-    strokeWeight: 2,
-    fillColor: "#FF0000",
-    fillOpacity: 0.35,
-    clickable: false,
-    draggable: false,
-    editable: false,
-    visible: true,
-    radius: 30000,
-    zIndex: 1,
-  };
-
-  // Hook used to animate buses smoother
-  useEffect(() => {
-    const ms = 40; // milliseconds between position updates
-    const updateInterval = setInterval(() => {
-      // serverUpdateInterval is the time interval at which the client receives realtime updates.
-      // If this interval is changed on the server side, serverUpdateInterval has to be changed accordingly.
-      // TODO: calculate serverUpdateInterval instead of using a constant value.
-      let serverUpdateInterval = 5000;
-
-      // The time that has passed since the last realtime update was received.
-      let dt = new Date().getTime() - vehicleData.timestamp;
-
-      // Dividing the time delta with the time interval of realtime updates
-      // in order to get the fraction of the way that the vehicle should have
-      // reached if it moves at a constant rate of speed.
-      let fraction = dt / serverUpdateInterval;
-
-      if (fraction > 1) return;
-
-      setVehicleData({
-        timestamp: vehicleData.timestamp,
-        vehicles: Object.fromEntries(
-          Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => {
-            // interpolate between the source and target positions using the calculated fraction
-            // to get the new position.
-            let newLatLng = interpolate(
-              vehicle.sourcePosition,
-              vehicle.targetPosition,
-              fraction
-            );
-
-            vehicle.currentPosition.latitude = newLatLng.lat();
-            vehicle.currentPosition.longitude = newLatLng.lng();
-
-            return [vehicleId, vehicle];
-          })
-        ),
-      });
-    }, ms);
-
-    return () => {
-      clearInterval(updateInterval);
-    };
-  }, [vehicleData, vehicleData.vehicles]);
-
-  useEffect(() => {
-    setVehicleData({
-      timestamp: new Date().getTime(),
+    return {
+      timestamp: now,
+      serverUpdateInterval: serverUpdateInterval,
       vehicles: Object.fromEntries(
-        props.realtimeData.map((vehicle) => {
+        action.payload.map((vehicle) => {
           let vehicleId = vehicle.descriptorId.toString();
-          let entry = vehicleData.vehicles[vehicleId];
+          let entry = state.vehicles[vehicleId];
 
           return [
             vehicleId,
@@ -146,7 +97,103 @@ function Map(props) {
             },
           ];
         })
-      ),
+      )
+    }
+  }
+
+  if(action.type === "animate") {
+    // The time that has passed since the last realtime update was received.
+    let dt = new Date().getTime() - state.timestamp;
+
+    // Dividing the time delta with the time interval of realtime updates
+    // in order to get the fraction of the way that the vehicle should have
+    // reached if it moves at a constant rate of speed.
+    let fraction = dt*1.0 / state.serverUpdateInterval;
+
+    if(fraction > 1) return state;
+
+    return {
+      ...state,
+      vehicles: Object.fromEntries(
+        Object.entries(state.vehicles).map(([vehicleId, vehicle]) => {
+          // interpolate between the source and target positions using the calculated fraction
+          // to get the new position.
+          let newLatLng = interpolate(
+            vehicle.sourcePosition,
+            vehicle.targetPosition,
+            fraction
+          );
+          vehicle.currentPosition.latitude = newLatLng.lat();
+          vehicle.currentPosition.longitude = newLatLng.lng();
+
+          // interpolate between the source and target positions bearings using the calculated fraction
+          // to get the new bearing.
+          vehicle.currentPosition.bearing = lerpDegrees(
+            vehicle.sourcePosition.bearing,
+            vehicle.targetPosition.bearing,
+            fraction
+          );
+
+          return [vehicleId, vehicle];
+        })
+      )
+    };
+  }
+
+  throw new Error(`Unhandled action type: ${action.type}`);
+}
+
+/*
+ * Function component for the Map of the application
+ */
+function Map(props) {
+  // State-variables
+  const [vehicleData, vehicleDataDispatch] = useReducer(
+    vehicleDataReducer,
+    {
+      timestamp: 0,
+      serverUpdateInterval: 1,
+      vehicles: {}
+    }
+  );
+  const [currentTheme, setCurrentTheme] = useState(styles.day);
+  const [currentCenter, setCurrentCenter] = useState(defaultCenter);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [currentRoute, setRoute] = useState(null);
+  const [activeReservation, setReservation] = useState(false);
+
+  const { isLoaded, loadError } = useLoadScript({
+    // Reads the google-maps api_key from your locally created .env file
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+  });
+
+  const mapRef = React.useRef();
+  const onMapLoad = React.useCallback((map) => {
+    mapRef.current = map;
+  }, []);
+
+  // Default options of the GoogleMap component
+  const options = {
+    styles: currentTheme,
+    disableDefaultUI: true,
+    gestureHandling: "greedy"
+  };
+
+  useEffect(() => {
+    const ms = 40; // milliseconds between position updates
+    const updateInterval = setInterval(() => {
+      vehicleDataDispatch({type: "animate"})
+    }, ms);
+
+    return () => {
+      clearInterval(updateInterval);
+    };
+  }, [vehicleData, vehicleData.vehicles]);
+
+  useEffect(() => {
+    vehicleDataDispatch({
+      type: "setNewData",
+      payload: props.realtimeData
     });
   }, [props.realtimeData]);
 
@@ -164,29 +211,13 @@ function Map(props) {
     return () => clearInterval(interval);
   }, []);
 
-  const mapRef = React.useRef();
-  const onMapLoad = React.useCallback((map) => {
-    mapRef.current = map;
-  }, []);
-
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
     let lat = mapRef.current.getCenter().lat();
     let lng = mapRef.current.getCenter().lng();
     let radius = getBoundingSphereRadius();
 
-    let message = {
-      type: "geo-position-update",
-      payload: {
-        maxDistance: radius,
-        position: {
-          type: "Point",
-          coordinates: [lat, lng],
-        },
-      },
-    };
-
-    props.wsSend(JSON.stringify(message));
+    props.wsSend(JSON.stringify(geoPositionUpdateRequest(radius, lat, lng)));
   };
 
   // returns the radius of the maps bounding sphere in meters
@@ -196,32 +227,6 @@ function Map(props) {
 
     // return the distance along the earths surface
     return computeDistanceBetween(center, northEast);
-  };
-
-  const { isLoaded, loadError } = useLoadScript({
-    // Reads the google-maps api_key from your locally created .env file
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
-  });
-
-  // Container size for the GoogleMap component
-  const mapContainerStyle = {
-    height: "100vh",
-    width: "100vw",
-  };
-
-  // Default options of the GoogleMap component
-  const options = {
-    styles: currentTheme,
-    disableDefaultUI: true,
-  };
-
-  // Gets the users position using the browser location
-  const updateLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(setCoordinates);
-    } else {
-      alert("Browser error");
-    }
   };
 
   // Sets the center of the map to the user-position
@@ -271,10 +276,12 @@ function Map(props) {
               props.wsSend(JSON.stringify(routeRequest(vehicle.line)));
             }}
             icon={{
-              url: "/bus.svg",
-              origin: new window.google.maps.Point(0, 0),
-              anchor: new window.google.maps.Point(15, 15),
-              scaledSize: new window.google.maps.Size(30, 30),
+              path: "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
+              scale: 0.5,
+              anchor: new window.google.maps.Point(6, 25),
+              rotation: vehicle.currentPosition.bearing,
+              fillOpacity: 1,
+              fillColor: "green"
             }}
           ></Marker>
         ))}
@@ -330,7 +337,7 @@ function Map(props) {
           }}
           onClick={() => {
             mapRef.current.setZoom(18);
-            updateLocation();
+            updateNavigatorGeolocation(setCoordinates);
           }}
           icon={{
             url: "/circle.svg",
@@ -360,7 +367,7 @@ function Map(props) {
         aria-label="locationButton"
         onClick={() => {
           mapRef.current.setZoom(18);
-          updateLocation();
+          updateNavigatorGeolocation(setCoordinates);
         }}
       >
         <MyLocationIcon />
