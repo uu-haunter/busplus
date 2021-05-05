@@ -8,6 +8,7 @@ use actix::prelude::{
 };
 use actix::AsyncContext;
 use mongodb::bson::doc;
+use rand::Rng;
 use uuid::Uuid;
 
 use crate::client::ClientData;
@@ -15,11 +16,12 @@ use crate::config::{Config, CONFIG_FILE_PATH};
 use crate::database::DbConnection;
 use crate::gtfs::trafiklab::TrafiklabApi;
 use crate::messages::{
-    Connect, Disconnect, EchoPositions, PositionUpdate, ReserveSeat, RouteRequest, UnreserveSeat,
-    WsMessage,
+    Connect, Disconnect, EchoPositions, PassengerInfo, PositionUpdate, ReserveSeat, RouteRequest,
+    UnreserveSeat, WsMessage,
 };
 use crate::protocol::server_protocol::{
-    ErrorType, RouteInformationOutput, ServerOutput, Vehicle, VehiclePositionsOutput,
+    ErrorType, PassengerInformationOutput, RouteInformationOutput, ServerOutput, Vehicle,
+    VehiclePositionsOutput,
 };
 
 use crate::util::filter_vehicle_position;
@@ -42,6 +44,14 @@ pub struct Lobby {
 
     /// Handle to a connection to a MongoDB database.
     db_connection: DbConnection,
+
+    /// NOTE THAT THIS IS VERY TEMPORARY. THIS FUNCTIONALITY SHOULD BE MOVED
+    /// TO AN EXTERNAL DATABASE IN THE FUTURE.
+    /// Maps a vehicle descriptor id (string) a passenger information object.
+    passenger_info: HashMap<String, PassengerInformationOutput>,
+
+    /// Random number generator.
+    rng: rand::rngs::ThreadRng,
 }
 
 impl Lobby {
@@ -71,6 +81,8 @@ impl Lobby {
             trafiklab: TrafiklabApi::new(realtime_key, static_key),
             echo_positions_interval: Duration::from_secs_f64(echo_interval),
             db_connection,
+            passenger_info: HashMap::new(),
+            rng: rand::thread_rng(),
         };
 
         // Fetch initial realtime data.
@@ -149,6 +161,27 @@ impl Lobby {
             &ServerOutput::error_message(error_type, error_message),
             id_to,
         );
+    }
+
+    /// Sends a status message to all connected clients that have an active reservation for a bus
+    ///
+    fn send_passenger_update(&self, descriptor_id: &str) {
+        // Get the passenger info object.
+        let passenger_info = self.passenger_info.get(descriptor_id).unwrap().clone();
+
+        // Create the message that should be sent.
+        let message =
+            serde_json::to_string(&ServerOutput::PassengerInformation(passenger_info)).unwrap();
+
+        self.clients.iter().for_each(|(id, client)| {
+            if let Some(client_descriptor_id) = &client.last_descriptor_request {
+                // If the clients last descriptor id is the same as the updated descriptor id
+                // we'll send the updated status to them.
+                if client_descriptor_id == descriptor_id {
+                    self.send_message(&message, id);
+                }
+            }
+        });
     }
 }
 
@@ -306,7 +339,7 @@ impl Handler<RouteRequest> for Lobby {
     // This method is called whenever the Lobby receives a "RouteRequest" message.
     fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) -> Self::Result {
         println!(
-            "Client with id '{}' requested line information for line '{}'",
+            "Client with id '{}' requested route information for line '{}'",
             msg.self_id, &msg.line_number
         );
 
@@ -386,8 +419,45 @@ impl Handler<RouteRequest> for Lobby {
     }
 }
 
+impl Handler<PassengerInfo> for Lobby {
+    type Result = ();
+
+    // This method is called whenever the Lobby receives a "ReserveSeat" message.
+    fn handle(&mut self, msg: PassengerInfo, _: &mut Context<Self>) -> Self::Result {
+        println!(
+            "Client with id '{}' requested passenger information for '{}'",
+            &msg.self_id, &msg.descriptor_id
+        );
+
+        // If the descriptor id does not exist in the hashmap we add random data for it.
+        if !self.passenger_info.contains_key(&msg.descriptor_id) {
+            self.passenger_info.insert(
+                msg.descriptor_id.clone(),
+                PassengerInformationOutput {
+                    passengers: self.rng.gen_range(0..15),
+                    capacity: self.rng.gen_range(20..35),
+                },
+            );
+        }
+
+        let passenger_info = self.passenger_info.get(&msg.descriptor_id).unwrap().clone();
+
+        // Send the passenger information to the client.
+        self.send_message(
+            &serde_json::to_string(&ServerOutput::PassengerInformation(passenger_info)).unwrap(),
+            &msg.self_id,
+        );
+
+        // Update the clients last descriptor
+        self.clients
+            .get_mut(&msg.self_id)
+            .unwrap()
+            .update_last_descriptor(msg.descriptor_id);
+    }
+}
+
 impl Handler<ReserveSeat> for Lobby {
-    type Result = ResponseActFuture<Self, ()>;
+    type Result = ();
 
     // This method is called whenever the Lobby receives a "ReserveSeat" message.
     fn handle(&mut self, msg: ReserveSeat, _: &mut Context<Self>) -> Self::Result {
@@ -396,59 +466,89 @@ impl Handler<ReserveSeat> for Lobby {
             &msg.self_id, &msg.descriptor_id
         );
 
-        Box::pin(
-            async move {
-                // Update data about bus with 'descriptor_id' in the database
-                // (increment expected_passenger_count by 1).
-            }
-            .into_actor(self)
-            .map(move |_, act, _| {
-                let client_data = act.clients.get_mut(&msg.self_id).unwrap();
+        // Keeps track of whether a reservation was made or not.
+        let mut reservation_was_made = false;
 
-                // If the update in the database was successful, store the descriptor id for
-                // the bus on which the seat was reserved so that it can be "unreserved" later.
-                client_data.reserved_seat = Some(msg.descriptor_id);
-            }),
-        )
+        match self.passenger_info.get_mut(&msg.descriptor_id) {
+            Some(passenger_info) => {
+                if passenger_info.passengers + 1 != passenger_info.capacity {
+                    reservation_was_made = true;
+
+                    // Increment the passenger count.
+                    passenger_info.passengers += 1;
+
+                    let client_data = self.clients.get_mut(&msg.self_id).unwrap();
+
+                    // If the update in the database was successful, store the descriptor id for
+                    // the bus on which the seat was reserved so that it can be "unreserved" later.
+                    client_data.reserved_seat = Some(msg.descriptor_id.clone());
+                } else {
+                    self.send_error(
+                        &msg.self_id,
+                        ErrorType::Reserve,
+                        format!(
+                            "The bus with descriptor id '{}' is full",
+                            &msg.descriptor_id
+                        ),
+                    );
+                }
+            }
+            None => {
+                // If a bus with the descriptor id does not exist in the passenger information hashmap
+                // send an error message to the client.
+                self.send_error(
+                    &msg.self_id,
+                    ErrorType::Reserve,
+                    format!(
+                        "A bus with descriptor id '{}' does not exist.",
+                        &msg.descriptor_id
+                    ),
+                );
+            }
+        };
+
+        if reservation_was_made {
+            // Send updates to all concerned clients.
+            self.send_passenger_update(&msg.descriptor_id);
+        }
     }
 }
 
 impl Handler<UnreserveSeat> for Lobby {
-    type Result = ResponseActFuture<Self, ()>;
+    type Result = ();
 
     // This method is called whenever the Lobby receives a "UnreserveSeat" message.
     fn handle(&mut self, msg: UnreserveSeat, _: &mut Context<Self>) -> Self::Result {
         println!("Client with id '{}' unreserved their seat", &msg.self_id);
 
-        let reserved_seat = self
-            .clients
-            .get_mut(&msg.self_id)
-            .unwrap()
-            .reserved_seat
-            .clone();
+        // Keeps track of an unreserved seat, if a seat was unreserved.
+        let mut unreserved_seat = String::new();
 
-        Box::pin(
-            async move {
-                if reserved_seat.is_none() {
-                    return None;
-                }
+        let client_data = self.clients.get_mut(&msg.self_id).unwrap();
 
-                // Update data about bus with 'descriptor_id' in the database
-                // (decrement expected_passenger_count by 1).
+        match &client_data.reserved_seat {
+            Some(descriptor_id) => {
+                unreserved_seat = descriptor_id.clone();
 
-                reserved_seat
+                // Decrement the passenger count in the passenger info hashmap.
+                self.passenger_info
+                    .get_mut(descriptor_id)
+                    .unwrap()
+                    .passengers -= 1;
+
+                // Remove the reserved seat from the client.
+                client_data.reserved_seat = None;
             }
-            .into_actor(self)
-            .map(move |result, act, _| {
-                // Only if the returned result is Some, should the clients reserved seat
-                // be set back to None.
-                if result.is_some() {
-                    let client_data = act.clients.get_mut(&msg.self_id).unwrap();
+            None => self.send_error(
+                &msg.self_id,
+                ErrorType::Unreserve,
+                "Cannot unreserve since there is no active reservation.".to_owned(),
+            ),
+        };
 
-                    // Remove the previously stored reserved seat.
-                    client_data.reserved_seat = None;
-                }
-            }),
-        )
+        if !unreserved_seat.is_empty() {
+            // Send updates to all concerned clients.
+            self.send_passenger_update(&unreserved_seat);
+        }
     }
 }

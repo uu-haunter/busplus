@@ -21,6 +21,10 @@ pub struct ClientData {
     /// None if the client has not reserved a seat on a bus, Some with a descriptor_id
     /// if the client has reserved a seat.
     pub reserved_seat: Option<String>,
+
+    /// Keeps track of the last descriptor id that the client has made any request for/on.
+    /// This is used to be able to send the client updates to the descriptor id when they happen.
+    pub last_descriptor_request: Option<String>,
 }
 
 impl ClientData {
@@ -31,11 +35,17 @@ impl ClientData {
             addr,
             position: None,
             reserved_seat: None,
+            last_descriptor_request: None,
         }
     }
 
     /// Updates the clients position.
     pub fn update_position(&mut self, position: GeoPosition) {
         self.position = Some(position);
+    }
+
+    /// Updates the last descriptor.
+    pub fn update_last_descriptor(&mut self, descriptor_id: String) {
+        self.last_descriptor_request = Some(descriptor_id);
     }
 }

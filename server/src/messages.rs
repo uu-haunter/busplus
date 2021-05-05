@@ -49,6 +49,14 @@ pub struct RouteRequest {
 /// WebsocketClient sends this to reserve a seat on a bus.
 #[derive(Debug, Message)]
 #[rtype(result = "()")]
+pub struct PassengerInfo {
+    pub self_id: Uuid,
+    pub descriptor_id: String,
+}
+
+/// WebsocketClient sends this to reserve a seat on a bus.
+#[derive(Debug, Message)]
+#[rtype(result = "()")]
 pub struct ReserveSeat {
     pub self_id: Uuid,
     pub descriptor_id: String,

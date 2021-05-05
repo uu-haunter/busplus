@@ -68,6 +68,7 @@ impl TrafiklabApi {
 
     /// Makes a request to Trafiklab's API for static data. The files that are received from the
     /// request is stored in the OS's temporary folder (%temp% on Windows).
+    #[allow(dead_code)]
     pub fn fetch_static_data(&mut self) -> Result<(), ()> {
         // Byte array for the raw data received from the API.
         let mut zip_data: Vec<u8> = Vec::new();
@@ -122,6 +123,7 @@ impl TrafiklabApi {
     }
 
     /// Deletes all static data (if any are downloaded).
+    #[allow(dead_code)]
     pub fn delete_static_data(&mut self) {
         if self.static_files.is_some() {
             // Drop the directory, essentially removing all the temporary directory
