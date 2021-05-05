@@ -159,6 +159,7 @@ function Map(props) {
   const [currentRoute, setRoute] = useState(null);
   const [activeReservation, setReservation] = useState(false);
   const [passengerData, setPassengerData] = useState(null);
+  const [currentReservation, setCurrentReservation] = useState(null);
 
   const { isLoaded, loadError } = useLoadScript({
     // Reads the google-maps api_key from your locally created .env file
@@ -281,11 +282,11 @@ function Map(props) {
             icon={{
               path:
                 "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
-              scale: 0.5,
+              scale: (vehicleId === currentReservation ? 0.7 : 0.5),
               anchor: new window.google.maps.Point(6, 25),
               rotation: vehicle.currentPosition.bearing,
               fillOpacity: 1,
-              fillColor: "green",
+              fillColor: (vehicleId === currentReservation ? "orange" : "green"),
             }}
           ></Marker>
         ))}
@@ -310,6 +311,7 @@ function Map(props) {
                   disabled={passengerData.passengers === passengerData.capacity}
                   onClick={() => {
                     setReservation(true);
+                    setCurrentReservation(selectedMarker);
                     props.wsSend(
                       JSON.stringify(reserveSeatRequest(selectedMarker))
                     );
@@ -323,6 +325,7 @@ function Map(props) {
                   color="secondary"
                   onClick={() => {
                     setReservation(false);
+                    setCurrentReservation(null);
                     props.wsSend(JSON.stringify(unreserveSeatRequest()));
                   }}
                 >
