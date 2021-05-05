@@ -11,6 +11,7 @@ class App extends React.Component {
     this.state = {
       realtimeData: [],
       route: [],
+      passengerData: { passengers: 0, capacity: 0 },
       vehiclesLoaded: false,
     };
     this.ws = null;
@@ -31,6 +32,13 @@ class App extends React.Component {
     } else if (message.type === "route-info") {
       console.log(message);
       this.setState({ route: message.payload.route });
+    } else if (message.type === "passenger-info") {
+      this.setState({
+        passengerData: {
+          passengers: message.payload.passengers,
+          capacity: message.payload.capacity,
+        },
+      });
     }
 
     // Handle other types of messages here
@@ -42,7 +50,9 @@ class App extends React.Component {
       this.ws = ws;
       console.log("Connected!");
 
-      this.wsSend(JSON.stringify(geoPositionUpdateRequest(1000, 59.8585, 17.6389)));
+      this.wsSend(
+        JSON.stringify(geoPositionUpdateRequest(1000, 59.8585, 17.6389))
+      );
     };
     ws.onmessage = (event) => {
       console.log("Message received", event.data);
@@ -72,6 +82,7 @@ class App extends React.Component {
               wsSend={this.wsSend}
               realtimeData={this.state.realtimeData}
               route={this.state.route}
+              passengerData={this.state.passengerData}
             />
             <SearchBar wsSend={this.wsSend} />
           </div>

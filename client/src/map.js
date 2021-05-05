@@ -12,7 +12,8 @@ import {
   routeRequest,
   geoPositionUpdateRequest,
   reserveSeatRequest,
-  unreserveSeatRequest
+  unreserveSeatRequest,
+  getPassengerInfo,
 } from "./messages.js";
 import Fab from "@material-ui/core/Fab";
 import Button from "@material-ui/core/Button";
@@ -64,14 +65,13 @@ function updateNavigatorGeolocation(callback) {
 // linear interpolation between two angles
 function lerpDegrees(source, target, amount) {
   let angle = target - source;
-  if(angle > 180) angle -= 360;
-  else if(angle < -180) angle += 360;
+  if (angle > 180) angle -= 360;
+  else if (angle < -180) angle += 360;
   return source + angle * amount;
 }
 
 function vehicleDataReducer(state, action) {
-
-  if(action.type === "setNewData") {
+  if (action.type === "setNewData") {
     let now = new Date().getTime();
     let serverUpdateInterval = now - state.timestamp;
 
@@ -97,20 +97,20 @@ function vehicleDataReducer(state, action) {
             },
           ];
         })
-      )
-    }
+      ),
+    };
   }
 
-  if(action.type === "animate") {
+  if (action.type === "animate") {
     // The time that has passed since the last realtime update was received.
     let dt = new Date().getTime() - state.timestamp;
 
     // Dividing the time delta with the time interval of realtime updates
     // in order to get the fraction of the way that the vehicle should have
     // reached if it moves at a constant rate of speed.
-    let fraction = dt*1.0 / state.serverUpdateInterval;
+    let fraction = (dt * 1.0) / state.serverUpdateInterval;
 
-    if(fraction > 1) return state;
+    if (fraction > 1) return state;
 
     return {
       ...state,
@@ -136,7 +136,7 @@ function vehicleDataReducer(state, action) {
 
           return [vehicleId, vehicle];
         })
-      )
+      ),
     };
   }
 
@@ -148,19 +148,17 @@ function vehicleDataReducer(state, action) {
  */
 function Map(props) {
   // State-variables
-  const [vehicleData, vehicleDataDispatch] = useReducer(
-    vehicleDataReducer,
-    {
-      timestamp: 0,
-      serverUpdateInterval: 1,
-      vehicles: {}
-    }
-  );
+  const [vehicleData, vehicleDataDispatch] = useReducer(vehicleDataReducer, {
+    timestamp: 0,
+    serverUpdateInterval: 1,
+    vehicles: {},
+  });
   const [currentTheme, setCurrentTheme] = useState(styles.day);
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [currentRoute, setRoute] = useState(null);
   const [activeReservation, setReservation] = useState(false);
+  const [passengerData, setPassengerData] = useState(null);
 
   const { isLoaded, loadError } = useLoadScript({
     // Reads the google-maps api_key from your locally created .env file
@@ -176,13 +174,13 @@ function Map(props) {
   const options = {
     styles: currentTheme,
     disableDefaultUI: true,
-    gestureHandling: "greedy"
+    gestureHandling: "greedy",
   };
 
   useEffect(() => {
     const ms = 40; // milliseconds between position updates
     const updateInterval = setInterval(() => {
-      vehicleDataDispatch({type: "animate"})
+      vehicleDataDispatch({ type: "animate" });
     }, ms);
 
     return () => {
@@ -193,7 +191,7 @@ function Map(props) {
   useEffect(() => {
     vehicleDataDispatch({
       type: "setNewData",
-      payload: props.realtimeData
+      payload: props.realtimeData,
     });
   }, [props.realtimeData]);
 
@@ -202,6 +200,11 @@ function Map(props) {
     setRoute(props.route);
   }, [props.route]);
 
+  // Hook used to modify passenger-data
+  useEffect(() => {
+    setPassengerData(props.passengerData);
+  }, [props.passengerData]);
+
   // Update the position every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -209,7 +212,7 @@ function Map(props) {
       //TODO: Maybe update userposition here
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  });
 
   // called when the maps bounds are changed e.g. when a user drags the map
   const onBoundsChanged = () => {
@@ -272,20 +275,21 @@ function Map(props) {
             }}
             onClick={() => {
               setSelectedMarker(vehicleId);
-              // TODO: Change argument for routeRequest when we have line data
+              props.wsSend(JSON.stringify(getPassengerInfo(vehicleId)));
               props.wsSend(JSON.stringify(routeRequest(vehicle.line)));
             }}
             icon={{
-              path: "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
+              path:
+                "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
               scale: 0.5,
               anchor: new window.google.maps.Point(6, 25),
               rotation: vehicle.currentPosition.bearing,
               fillOpacity: 1,
-              fillColor: "green"
+              fillColor: "green",
             }}
           ></Marker>
         ))}
-        {selectedMarker && (
+        {selectedMarker && vehicleData.vehicles[selectedMarker] && (
           <InfoWindow
             position={{
               lat:
@@ -298,11 +302,12 @@ function Map(props) {
             }}
           >
             <div>
-              <p>{`Bus ${vehicleData.vehicles[selectedMarker].line} \n Passengers ${vehicleData.vehicles[selectedMarker].passengers} / ${vehicleData.vehicles[selectedMarker].capacity}`}</p>
+              <p>{`Bus ${vehicleData.vehicles[selectedMarker].line} \n Passengers ${passengerData.passengers} / ${passengerData.capacity}`}</p>
               {!activeReservation ? (
                 <Button
                   variant="outlined"
                   color="primary"
+                  disabled={passengerData.passengers === passengerData.capacity}
                   onClick={() => {
                     setReservation(true);
                     props.wsSend(
@@ -318,9 +323,7 @@ function Map(props) {
                   color="secondary"
                   onClick={() => {
                     setReservation(false);
-                    props.wsSend(
-                      JSON.stringify(unreserveSeatRequest())
-                    );
+                    props.wsSend(JSON.stringify(unreserveSeatRequest()));
                   }}
                 >
                   cancel reservation
