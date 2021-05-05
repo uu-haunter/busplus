@@ -20,6 +20,9 @@ pub enum ClientInput {
     #[serde(rename = "geo-position-update")]
     GeoPositionUpdate(GeoPosition),
 
+    #[serde(rename = "get-passenger-info")]
+    GetPassengerInformation(VehicleDescriptor),
+
     #[serde(rename = "reserve-seat")]
     ReserveSeat(VehicleDescriptor),
 

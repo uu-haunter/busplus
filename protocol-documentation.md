@@ -44,18 +44,6 @@ When the position or zoom on the client's map is changed, this message should be
 }
 ```
 
-### Get line information
-Sent to get information about a specific line.
-> Not implemented
-```json
-{
-    "type": "get-line-info",
-    "payload": {
-        "line": "5"
-    }
-}
-```
-
 ### Get route information
 Sent to get information about a specific route.
 ```json
@@ -67,9 +55,19 @@ Sent to get information about a specific route.
 }
 ```
 
+### Get passenger info for a bus
+Sent to get information about how many passengers and capacity a bus has
+```json
+{
+    "type": "get-passenger-info",
+    "payload": {
+        "descriptorId": "123456"
+    }
+}
+```
+
 ### Reserve seat
 Sent to reserve a seat on a bus with a specific id.
-> Not implemented
 ```json
 {
     "type": "reserve-seat",
@@ -81,7 +79,6 @@ Sent to reserve a seat on a bus with a specific id.
 
 ### Unreserve seat
 Sent to unreserve a seat on a bus with a specific id.
-> Not implemented
 ```json
 {
     "type": "unreserve-seat"
@@ -104,8 +101,6 @@ Sends the information of all vehicles set by `geo-position-update`.
                 "descriptor_id": "123456",
                 "trip_id": "123456",
                 "line": 5,
-                "capacity": 80,
-                "passengers": 30,
                 "position": {
                     "latitude": 59,
                     "longitude": 16,
@@ -119,29 +114,16 @@ Sends the information of all vehicles set by `geo-position-update`.
 }
 ```
 
-### Line information
-Get the information from a specific line.
->  Not implemented
+### Passenger information
+Get information about how many passenger and capacity a bus has
 ```json
 {
-    "type": "line-info",
+    "type": "passenger-info",
     "payload": {
-        "timestamp": 111111,
-        "line" : "5",
-        "vehicles": 10,
-        "stops": [
-            {
-                "name": "Centralstationen",
-                "lines" : ["5", "11", "14"],
-                "position": {
-                    "type": "Point",
-                    "coordinates": [56.133, 13.128],
-                }
-            },
-            ...
-        ]
+        "passengers": 13,
+        "capacity": 30,
     }
-}
+} 
 ```
 
 ### Route information
@@ -159,23 +141,6 @@ Get the coordinates for a specific route.
             {"lat": -18.142, "lng": 178.431},
             {"lat": -27.467, "lng": 153.027}
         ]
-    }
-}
-```
-
-### Stop information
-Get the information from a specific stop.
->  Not implemented
-```json
-{
-    "type": "stop-info",
-    "payload": {
-        "name": "Centralstationen",
-        "lines" : ["5", "11", "14"],
-        "position": {
-            "type": "Point",
-            "coordinates": [56.133, 13.128],
-        } 
     }
 }
 ```

@@ -33,6 +33,9 @@ pub enum ServerOutput {
     #[serde(rename = "vehicle-positions")]
     VehiclePositions(VehiclePositionsOutput),
 
+    #[serde(rename = "passenger-info")]
+    PassengerInformation(PassengerInformationOutput),
+
     #[serde(rename = "route-info")]
     RouteInformation(RouteInformationOutput),
 }
@@ -72,6 +75,14 @@ pub struct Vehicle {
     pub line: Option<String>,
     pub trip_id: Option<String>,
     pub position: Position,
+}
+
+/// Represents passenger information for a bus.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PassengerInformationOutput {
+    pub capacity: i32,
+    pub passengers: i32,
 }
 
 /// Represent a list of lines.

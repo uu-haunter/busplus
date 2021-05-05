@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 use crate::lobby::Lobby;
 use crate::messages::{
-    Connect, Disconnect, PositionUpdate, ReserveSeat, RouteRequest, UnreserveSeat, WsMessage,
+    Connect, Disconnect, PassengerInfo, PositionUpdate, ReserveSeat, RouteRequest, UnreserveSeat,
+    WsMessage,
 };
 use crate::protocol::client_protocol::ClientInput;
 use crate::protocol::server_protocol::{ErrorType, ServerOutput};
@@ -153,6 +154,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                             self.lobby_addr.do_send(PositionUpdate {
                                 self_id: self.id,
                                 position: inp,
+                            });
+                        }
+                        ClientInput::GetPassengerInformation(inp) => {
+                            self.lobby_addr.do_send(PassengerInfo {
+                                self_id: self.id,
+                                descriptor_id: inp.descriptor_id,
                             });
                         }
                         ClientInput::ReserveSeat(inp) => {
