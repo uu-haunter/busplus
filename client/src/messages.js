@@ -1,4 +1,3 @@
-
 export function routeRequest(lineNo) {
   return {
     type: "get-route-info",
@@ -6,7 +5,7 @@ export function routeRequest(lineNo) {
       line: lineNo,
     },
   };
-};
+}
 
 export function geoPositionUpdateRequest(maxDistance, lat, lng) {
   return {
@@ -35,5 +34,15 @@ export function reserveSeatRequest(vehicleId) {
 export function unreserveSeatRequest() {
   return {
     type: "unreserve-seat",
+  };
+}
+
+// Message to get passenger info
+export function getPassengerInfo(vehicleId) {
+  return {
+    type: "get-passenger-info",
+    payload: {
+      descriptorId: vehicleId,
+    },
   };
 }
