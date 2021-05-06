@@ -19,3 +19,8 @@ pub fn filter_vehicle_position(client_geo: &GeoPosition, vhc: &Vehicle) -> bool 
 
     distance.meters() < client_geo.max_distance.into()
 }
+
+/// Returns true if the input string only contains numbers
+pub fn only_numbers(input: &str) -> bool {
+    input.chars().all(|c| c.is_numeric())
+}

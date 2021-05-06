@@ -15,7 +15,7 @@ pub enum ClientInput {
     GetLineInformation(LineInformation),
 
     #[serde(rename = "get-route-info")]
-    GetRouteInformation(LineInformation),
+    GetRouteInformation(Identifier),
 
     #[serde(rename = "geo-position-update")]
     GeoPositionUpdate(GeoPosition),
@@ -35,6 +35,14 @@ pub enum ClientInput {
 #[serde(rename_all = "camelCase")]
 pub struct LineInformation {
     pub line: String,
+}
+
+/// Contains an identifier. Typically used for cases where the identifier can have different meaning
+/// depending on the value
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Identifier {
+    pub id: String,
 }
 
 /// Position data from the client. Contains maximum distance and a position.
