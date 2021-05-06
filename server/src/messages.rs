@@ -43,7 +43,7 @@ pub struct PositionUpdate {
 #[rtype(result = "()")]
 pub struct RouteRequest {
     pub self_id: Uuid,
-    pub line_number: String,
+    pub identifier: String,
 }
 
 /// WebsocketClient sends this to reserve a seat on a bus.

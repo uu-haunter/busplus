@@ -90,8 +90,6 @@ pub struct PassengerInformationOutput {
 #[serde(rename_all = "camelCase")]
 pub struct RouteInformationOutput {
     pub timestamp: u64,
-    pub line: String,
-    pub route_id: String,
     pub route: Vec<RouteNode>,
 }
 

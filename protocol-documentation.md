@@ -45,12 +45,12 @@ When the position or zoom on the client's map is changed, this message should be
 ```
 
 ### Get route information
-Sent to get information about a specific route.
+Sent to get information about a specific route. "id" can either be a line number (i.e "1", "13", "844" etc) or a trip id, in which case the response from the server will be more detailed.
 ```json
 {
     "type": "get-route-info",
     "payload": {
-        "line": "5"
+        "id": "5"
     }
 }
 ```
@@ -133,8 +133,6 @@ Get the coordinates for a specific route.
     "type": "route-info",
     "payload": {
         "timestamp": 111111,
-        "line" : "5",
-        "routeId": "123456",
         "route": [
             {"lat": 37.772, "lng": -122.214},
             {"lat": 21.291, "lng": -157.821},

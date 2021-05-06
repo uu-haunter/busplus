@@ -23,8 +23,7 @@ use crate::protocol::server_protocol::{
     ErrorType, PassengerInformationOutput, RouteInformationOutput, ServerOutput, Vehicle,
     VehiclePositionsOutput,
 };
-
-use crate::util::filter_vehicle_position;
+use crate::util::{filter_vehicle_position, only_numbers};
 
 /// Type alias, which is essentially an address to an actor which you can
 /// send messages to.
@@ -301,7 +300,6 @@ impl Handler<Connect> for Lobby {
         self.clients
             .insert(msg.self_id, ClientData::new(msg.self_id, msg.addr));
 
-        // TODO: Remove this println. Only here to show that events occur.
         println!("Client with id '{}' connected.", msg.self_id);
     }
 }
@@ -313,7 +311,6 @@ impl Handler<Disconnect> for Lobby {
     fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
         // Try and remove the client from the clients hashmap.
         if self.clients.remove(&msg.self_id).is_some() {
-            // TODO: Remove this println. Only here to show that events occur.
             println!("Client with id '{}' disconnected.", msg.self_id);
         }
     }
@@ -339,13 +336,11 @@ impl Handler<RouteRequest> for Lobby {
     // This method is called whenever the Lobby receives a "RouteRequest" message.
     fn handle(&mut self, msg: RouteRequest, _: &mut Context<Self>) -> Self::Result {
         println!(
-            "Client with id '{}' requested route information for line '{}'",
-            msg.self_id, &msg.line_number
+            "Client with id '{}' requested route information for identifier '{}'",
+            msg.self_id, &msg.identifier
         );
 
-        // Important to clone these values so they will be accessible inside the async block in the
-        // pinned box.
-        let line_number = msg.line_number.clone();
+        // Important to clone this value so it will be accessible inside the async block in the pinned box.
         let client_id = msg.self_id.clone();
 
         // Note that we also clone a handle to the database connection since "self" cannot be accessed
@@ -355,28 +350,38 @@ impl Handler<RouteRequest> for Lobby {
         Box::pin(
             async move {
                 // Check if the line number is not empty and only contains numbers
-                if msg.line_number.is_empty() || !msg.line_number.chars().all(|c| c.is_numeric()) {
+                if msg.identifier.is_empty() || !only_numbers(&msg.identifier) {
                     return ServerOutput::error_message(
                         ErrorType::RouteInfo,
-                        format!("'{}' is not a valid line number", line_number),
+                        format!("'{}' is not a valid identifier", &msg.identifier),
                     );
                 }
 
-                let route_id = match conn
-                    .get_route(doc! {"route_short_name": &line_number})
-                    .await
-                {
-                    Some(route) => route.route_id,
-                    None => {
-                        return ServerOutput::error_message(
-                            ErrorType::RouteInfo,
-                            format!("'{}' is not a valid line number", line_number),
-                        );
+                // Determine what query should be used to fetch the shapes with.
+                let shape_query = match msg.identifier.len() <= 3 {
+                    // If the length is less than or equal to 3, the identifier is a line number.
+                    true => {
+                        let route_id = match conn
+                            .get_route(doc! {"route_short_name": &msg.identifier})
+                            .await
+                        {
+                            Some(route) => route.route_id,
+                            None => {
+                                return ServerOutput::error_message(
+                                    ErrorType::RouteInfo,
+                                    format!("'{}' is not a valid line number", &msg.identifier),
+                                );
+                            }
+                        };
+
+                        doc! {"route_id": &route_id}
                     }
+                    // Otherwise the identifier is a trip id
+                    false => doc! {"trip_id": &msg.identifier},
                 };
 
-                // Make a request to the database to figure out what "shape_id" the route has.
-                let shape_id = match conn.get_trip(doc! {"route_id": &route_id}).await {
+                // Make a request to the database to figure out what "shape_id" the trip has.
+                let shape_id = match conn.get_trip(shape_query).await {
                     Some(trip) => trip.shape_id.to_string(),
                     None => {
                         return ServerOutput::error_message(
@@ -400,8 +405,6 @@ impl Handler<RouteRequest> for Lobby {
                 // Create the serialized json message that will be sent back to the client.
                 serde_json::to_string(&ServerOutput::RouteInformation(RouteInformationOutput {
                     timestamp: Lobby::get_current_timestamp(),
-                    line: msg.line_number,
-                    route_id: route_id,
                     route: nodes,
                 }))
                 .unwrap()
@@ -422,7 +425,7 @@ impl Handler<RouteRequest> for Lobby {
 impl Handler<PassengerInfo> for Lobby {
     type Result = ();
 
-    // This method is called whenever the Lobby receives a "ReserveSeat" message.
+    // This method is called whenever the Lobby receives a "PassengerInfo" message.
     fn handle(&mut self, msg: PassengerInfo, _: &mut Context<Self>) -> Self::Result {
         println!(
             "Client with id '{}' requested passenger information for '{}'",

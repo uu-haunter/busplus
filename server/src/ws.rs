@@ -146,7 +146,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebsocketClient {
                         ClientInput::GetRouteInformation(inp) => {
                             self.lobby_addr.do_send(RouteRequest {
                                 self_id: self.id,
-                                line_number: inp.line,
+                                identifier: inp.id,
                             });
                         }
                         ClientInput::GeoPositionUpdate(inp) => {
