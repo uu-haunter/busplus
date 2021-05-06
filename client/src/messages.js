@@ -1,8 +1,8 @@
-export function routeRequest(lineNo) {
+export function routeRequest(id) {
   return {
     type: "get-route-info",
     payload: {
-      line: lineNo,
+      id: id,
     },
   };
 }
