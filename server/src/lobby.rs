@@ -104,6 +104,11 @@ impl Lobby {
     /// This method starts an interval which fetches new data from the Trafiklab API.
     fn start_echo_positions_interval(&mut self, ctx: &mut <Self as Actor>::Context) {
         ctx.run_interval(self.echo_positions_interval, |act, ctx| {
+            // If no clients are connected there is no point in fetching any data.
+            if act.clients.is_empty() {
+                return;
+            }
+
             // Fetch vehicle positions from Trafiklab's API.
             match act.trafiklab.fetch_vehicle_positions() {
                 Err(reason) => {
