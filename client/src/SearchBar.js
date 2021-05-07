@@ -6,13 +6,12 @@ import { useState } from "react";
 import { routeRequest } from "./messages.js";
 
 function SearchBar(props) {
-
   const [query, setQuery] = useState("");
 
   const sendRequest = (e) => {
     e.preventDefault();
     if (query) {
-      props.wsSend(JSON.stringify(routeRequest(query)));
+      props.onSearch(query);
     } else {
       return;
     }

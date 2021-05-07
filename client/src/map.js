@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect, useReducer } from "react";
+import { useState, useEffect, useReducer, useCallback } from "react";
 import {
   GoogleMap,
   useLoadScript,
@@ -320,6 +320,24 @@ function Map(props) {
     setRoute([]);
   };
 
+  // this functions purpose is to be passed as a
+  // callback to the searchbar component.
+  const onBuslineSearch = useCallback((line) => {
+    props.wsSend(JSON.stringify(routeRequest(line)));
+
+    vehicleDataDispatch({
+      type: "setSelectedVehicle",
+      payload: {
+        id: null,
+        line: line,
+      },
+    });
+    vehicleDataDispatch({
+      type: "filterByLine",
+      payload: line,
+    });
+  }, []);
+
   if (loadError) return "Error";
   if (!isLoaded) return "Loading...";
 
@@ -353,12 +371,11 @@ function Map(props) {
                   icon={{
                     path:
                       "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
-                    scale: vehicleId === currentReservation ? 0.7 : 0.5,
+                    scale: vehicleId === currentReservation ? 0 : 0.5,
                     anchor: new window.google.maps.Point(6, 25),
                     rotation: vehicle.currentPosition.bearing,
                     fillOpacity: 1,
-                    fillColor:
-                      vehicleId === currentReservation ? "orange" : "green",
+                    fillColor: "green",
                   }}
                   visible={vehicleId !== setCurrentReservation}
                 />
@@ -427,7 +444,6 @@ function Map(props) {
                       passengerData.passengers === passengerData.capacity
                     }
                     onClick={() => {
-                      //setReservation(true);
                       setCurrentReservation(vehicleData.selectedVehicle.id);
                       props.wsSend(
                         JSON.stringify(
@@ -443,7 +459,6 @@ function Map(props) {
                     variant="contained"
                     color="secondary"
                     onClick={() => {
-                      //setReservation(false);
                       setCurrentReservation(null);
                       props.wsSend(JSON.stringify(unreserveSeatRequest()));
                     }}
@@ -499,6 +514,8 @@ function Map(props) {
       <Fab color="primary" id="themeButton" onClick={changeTheme}>
         <Brightness3Icon />
       </Fab>
+
+      <SearchBar onSearch={onBuslineSearch} />
     </div>
   );
 }
