@@ -1,9 +1,10 @@
 import React from "react";
-import { useState, useEffect, useReducer } from "react";
+import { useState, useEffect, useReducer, useCallback } from "react";
 import {
   GoogleMap,
   useLoadScript,
   Marker,
+  MarkerClusterer,
   InfoWindow,
   Polyline,
 } from "@react-google-maps/api";
@@ -15,6 +16,7 @@ import {
   unreserveSeatRequest,
   getPassengerInfo,
 } from "./messages.js";
+import SearchBar from "./SearchBar.js";
 import Fab from "@material-ui/core/Fab";
 import Button from "@material-ui/core/Button";
 import Brightness3Icon from "@material-ui/icons/Brightness3";
@@ -54,6 +56,13 @@ const polyLineOptions = {
   zIndex: 1,
 };
 
+// options for the vehicle marker cluster
+const markerClusterOptions = {
+  imagePath: null,
+  ignoreHidden: true,
+  imageSizes: [0, 0, 0, 0, 0],
+};
+
 function updateNavigatorGeolocation(callback) {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(callback);
@@ -75,29 +84,36 @@ function vehicleDataReducer(state, action) {
     let now = new Date().getTime();
     let serverUpdateInterval = now - state.timestamp;
 
+    let vehicles = (state.selectedVehicle.line
+      ? action.payload.filter(
+          (vehicle) => vehicle.line === state.selectedVehicle.line
+        )
+      : action.payload
+    ).map((vehicle) => {
+      let vehicleId = vehicle.descriptorId.toString();
+      let entry = state.vehicles[vehicleId];
+
+      return [
+        vehicleId,
+        {
+          trip: vehicle.tripId,
+          line: vehicle.line,
+          sourcePosition: entry
+            ? { ...entry.targetPosition }
+            : { ...vehicle.position },
+          currentPosition: entry
+            ? { ...entry.targetPosition }
+            : { ...vehicle.position },
+          targetPosition: { ...vehicle.position },
+        },
+      ];
+    });
+
     return {
+      ...state,
       timestamp: now,
       serverUpdateInterval: serverUpdateInterval,
-      vehicles: Object.fromEntries(
-        action.payload.map((vehicle) => {
-          let vehicleId = vehicle.descriptorId.toString();
-          let entry = state.vehicles[vehicleId];
-
-          return [
-            vehicleId,
-            {
-              line: vehicle.line,
-              sourcePosition: entry
-                ? { ...entry.targetPosition }
-                : { ...vehicle.position },
-              currentPosition: entry
-                ? { ...entry.targetPosition }
-                : { ...vehicle.position },
-              targetPosition: { ...vehicle.position },
-            },
-          ];
-        })
-      ),
+      vehicles: Object.fromEntries(vehicles),
     };
   }
 
@@ -140,6 +156,26 @@ function vehicleDataReducer(state, action) {
     };
   }
 
+  if (action.type === "setSelectedVehicle") {
+    return {
+      ...state,
+      selectedVehicle: action.payload,
+    };
+  }
+
+  if (action.type === "filterByLine") {
+    return {
+      ...state,
+      vehicles: state.selectedVehicle.line
+        ? Object.fromEntries(
+            Object.entries(state.vehicles).filter(
+              ([vehicleId, vehicle]) => vehicle.line === action.payload
+            )
+          )
+        : state.vehicles,
+    };
+  }
+
   throw new Error(`Unhandled action type: ${action.type}`);
 }
 
@@ -147,17 +183,23 @@ function vehicleDataReducer(state, action) {
  * Function component for the Map of the application
  */
 function Map(props) {
-  // State-variables
   const [vehicleData, vehicleDataDispatch] = useReducer(vehicleDataReducer, {
+    // when vehicle position updates were last received
     timestamp: 0,
+    // the time interval between vehicle position updates from
+    // the server
     serverUpdateInterval: 1,
+    // holds the line and id of the currently selected vehicle
+    selectedVehicle: {
+      id: null,
+      line: null,
+    },
+    // all vehicles
     vehicles: {},
   });
   const [currentTheme, setCurrentTheme] = useState(styles.day);
   const [currentCenter, setCurrentCenter] = useState(defaultCenter);
-  const [selectedMarker, setSelectedMarker] = useState(null);
   const [currentRoute, setRoute] = useState(null);
-  const [activeReservation, setReservation] = useState(false);
   const [passengerData, setPassengerData] = useState(null);
   const [currentReservation, setCurrentReservation] = useState(null);
 
@@ -250,6 +292,52 @@ function Map(props) {
     }
   };
 
+  const onVehicleSelect = (vehicleId, vehicle) => {
+    props.wsSend(JSON.stringify(routeRequest(vehicle.trip)));
+    props.wsSend(JSON.stringify(getPassengerInfo(vehicleId)));
+
+    vehicleDataDispatch({
+      type: "setSelectedVehicle",
+      payload: {
+        id: vehicleId,
+        line: vehicle.line,
+      },
+    });
+    vehicleDataDispatch({
+      type: "filterByLine",
+      payload: vehicle.line,
+    });
+  };
+
+  const onVehicleDeselect = () => {
+    vehicleDataDispatch({
+      type: "setSelectedVehicle",
+      payload: {
+        id: null,
+        line: null,
+      },
+    });
+    setRoute([]);
+  };
+
+  // this functions purpose is to be passed as a
+  // callback to the searchbar component.
+  const onBuslineSearch = useCallback((line) => {
+    props.wsSend(JSON.stringify(routeRequest(line)));
+
+    vehicleDataDispatch({
+      type: "setSelectedVehicle",
+      payload: {
+        id: null,
+        line: line,
+      },
+    });
+    vehicleDataDispatch({
+      type: "filterByLine",
+      payload: line,
+    });
+  }, []);
+
   if (loadError) return "Error";
   if (!isLoaded) return "Loading...";
 
@@ -261,80 +349,126 @@ function Map(props) {
         mapContainerStyle={mapContainerStyle}
         options={options}
         onClick={() => {
-          setSelectedMarker(null);
-          setRoute([]);
+          onVehicleDeselect();
         }}
         onLoad={onMapLoad}
         onBoundsChanged={onBoundsChanged}
       >
-        {Object.entries(vehicleData.vehicles).map(([vehicleId, vehicle]) => (
+        <MarkerClusterer options={markerClusterOptions} gridSize={20}>
+          {(clusterer) =>
+            Object.entries(vehicleData.vehicles).map(
+              ([vehicleId, vehicle], i) => (
+                <Marker
+                  key={vehicleId}
+                  position={{
+                    lat: vehicle.currentPosition.latitude,
+                    lng: vehicle.currentPosition.longitude,
+                  }}
+                  clusterer={clusterer}
+                  onClick={() => {
+                    onVehicleSelect(vehicleId, vehicle);
+                  }}
+                  icon={{
+                    path:
+                      "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
+                    scale: vehicleId === currentReservation ? 0 : 0.5,
+                    anchor: new window.google.maps.Point(6, 25),
+                    rotation: vehicle.currentPosition.bearing,
+                    fillOpacity: 1,
+                    fillColor: "green",
+                  }}
+                  visible={vehicleId !== setCurrentReservation}
+                />
+              )
+            )
+          }
+        </MarkerClusterer>
+
+        {currentReservation && vehicleData.vehicles[currentReservation] && (
           <Marker
-            key={vehicleId}
+            key={currentReservation}
             position={{
-              lat: vehicle.currentPosition.latitude,
-              lng: vehicle.currentPosition.longitude,
+              lat:
+                vehicleData.vehicles[currentReservation].currentPosition
+                  .latitude,
+              lng:
+                vehicleData.vehicles[currentReservation].currentPosition
+                  .longitude,
             }}
             onClick={() => {
-              setSelectedMarker(vehicleId);
-              props.wsSend(JSON.stringify(getPassengerInfo(vehicleId)));
-              props.wsSend(JSON.stringify(routeRequest(vehicle.line)));
+              onVehicleSelect(
+                currentReservation,
+                vehicleData.vehicles[currentReservation]
+              );
             }}
             icon={{
               path:
                 "M25.5,8.25H23.22V3H4.82V8.25H2.5V9.53H4.82V51.34A1.67,1.67,0,0,0,6.48,53h15.1a1.65,1.65,0,0,0,1.64-1.65V9.53H25.5Z",
-              scale: (vehicleId === currentReservation ? 0.7 : 0.5),
+              scale: 0.7,
               anchor: new window.google.maps.Point(6, 25),
-              rotation: vehicle.currentPosition.bearing,
+              rotation:
+                vehicleData.vehicles[currentReservation].currentPosition
+                  .bearing,
               fillOpacity: 1,
-              fillColor: (vehicleId === currentReservation ? "orange" : "green"),
+              fillColor: "orange",
             }}
-          ></Marker>
-        ))}
-        {selectedMarker && vehicleData.vehicles[selectedMarker] && (
-          <InfoWindow
-            position={{
-              lat:
-                vehicleData.vehicles[selectedMarker].currentPosition.latitude,
-              lng:
-                vehicleData.vehicles[selectedMarker].currentPosition.longitude,
-            }}
-            onCloseClick={() => {
-              setSelectedMarker(null);
-            }}
-          >
-            <div>
-              <p>{`Bus ${vehicleData.vehicles[selectedMarker].line} \n Passengers ${passengerData.passengers} / ${passengerData.capacity}`}</p>
-              {!activeReservation ? (
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  disabled={passengerData.passengers === passengerData.capacity}
-                  onClick={() => {
-                    setReservation(true);
-                    setCurrentReservation(selectedMarker);
-                    props.wsSend(
-                      JSON.stringify(reserveSeatRequest(selectedMarker))
-                    );
-                  }}
-                >
-                  Reserve Seat
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={() => {
-                    setReservation(false);
-                    setCurrentReservation(null);
-                    props.wsSend(JSON.stringify(unreserveSeatRequest()));
-                  }}
-                >
-                  cancel reservation
-                </Button>
-              )}
-            </div>
-          </InfoWindow>
+          />
         )}
+
+        {vehicleData.selectedVehicle.id &&
+          vehicleData.vehicles[vehicleData.selectedVehicle.id] && (
+            <InfoWindow
+              position={{
+                lat:
+                  vehicleData.vehicles[vehicleData.selectedVehicle.id]
+                    .currentPosition.latitude,
+                lng:
+                  vehicleData.vehicles[vehicleData.selectedVehicle.id]
+                    .currentPosition.longitude,
+              }}
+              onCloseClick={() => {
+                onVehicleDeselect();
+              }}
+            >
+              <div>
+                <p>{`Bus ${
+                  vehicleData.vehicles[vehicleData.selectedVehicle.id].line
+                } \n Passengers ${passengerData.passengers} / ${
+                  passengerData.capacity
+                }`}</p>
+                {!currentReservation ? (
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    disabled={
+                      passengerData.passengers === passengerData.capacity
+                    }
+                    onClick={() => {
+                      setCurrentReservation(vehicleData.selectedVehicle.id);
+                      props.wsSend(
+                        JSON.stringify(
+                          reserveSeatRequest(vehicleData.selectedVehicle.id)
+                        )
+                      );
+                    }}
+                  >
+                    Reserve Seat
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => {
+                      setCurrentReservation(null);
+                      props.wsSend(JSON.stringify(unreserveSeatRequest()));
+                    }}
+                  >
+                    cancel reservation
+                  </Button>
+                )}
+              </div>
+            </InfoWindow>
+          )}
 
         <Marker
           position={{
@@ -358,7 +492,6 @@ function Map(props) {
           <Polyline
             path={currentRoute.map((obj) => {
               return {
-                // TODO: Message should send coords in number format instead of string
                 lat: parseFloat(obj.lat),
                 lng: parseFloat(obj.lng),
               };
@@ -381,6 +514,8 @@ function Map(props) {
       <Fab color="primary" id="themeButton" onClick={changeTheme}>
         <Brightness3Icon />
       </Fab>
+
+      <SearchBar onSearch={onBuslineSearch} />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import React from "react";
 import Map from "./map.js";
-import SearchBar from "./SearchBar.js";
 import LoadingScreen from "./LoadingScreen.js";
 import "./App.css";
 import { geoPositionUpdateRequest } from "./messages.js";
@@ -84,7 +83,6 @@ class App extends React.Component {
               route={this.state.route}
               passengerData={this.state.passengerData}
             />
-            <SearchBar wsSend={this.wsSend} />
           </div>
         )}
       </div>
