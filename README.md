@@ -1,6 +1,6 @@
 # Bus+
 
-Bus+ is a service that lets users make smart and planned choices when traveling. Instead of planning a trip only from table times, Bus+ allows you to see the current location of all buses in you district as well as having support for getting and indication of how many people are traveling on a given bus at any given moment.
+Bus+ is a service that lets users make smart and planned choices when traveling. Instead of planning a trip only from table times, Bus+ allows you to see the current location of all buses in your district as well as having support for getting and indication of how many people are traveling on a given bus at any given moment.
 
 The goal of Bus+ is to create a standalone application that can either work as a complement to existing public-transport applications or be merged together with one of them  to create a better experience for travelers.
 
