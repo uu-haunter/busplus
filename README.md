@@ -39,7 +39,7 @@ REACT_APP_GOOGLE_MAPS_API_KEY=<key>
 
 ### Database
 
-This project relies on static data about routes, shapes and trips from [Trafiklab's Static API](https://www.trafiklab.se/api/gtfs-regional-static-data-beta). As of the latest version of this project, this data must be fetched manually and inserted into a MongoDB database, in a database called `trafiklab-static-api` with the collections `routes`, `shapes` and `trips`. The most efficient way to insert this data is to either use MongoDB's command line tool to import CSV files, or insert them using the GUI [MongoDb Compass](https://www.mongodb.com/products/compass).
+This project relies on static data about routes, shapes and trips from [Trafiklab's Static API](https://www.trafiklab.se/api/gtfs-regional-static-data-beta). As of the latest version of this project, this data must be fetched manually and inserted into a MongoDB database, in a database called `trafiklab-static-data` with the collections `routes`, `shapes` and `trips`. The most efficient way to insert this data is to either use MongoDB's command line tool to import CSV files, or insert them using the GUI [MongoDb Compass](https://www.mongodb.com/products/compass).
 
 If the process of importing data is to be programmatically implemented, one needs to be aware of what types the values have in MongoDB since both Rust and MongoDB is very picky about what types can be used both implicitly and explicitly.
 
